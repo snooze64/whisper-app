@@ -1,27 +1,30 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useAuthStore } from './stores/authStore'
+import Login from './pages/Login'
+import Dashboard from './pages/Dashboard'
+import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
+  const { isAuthenticated } = useAuthStore()
+
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-background">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-        </Routes>
-      </div>
+      <Routes>
+        <Route
+          path="/login"
+          element={isAuthenticated ? <Navigate to="/" replace /> : <Login />}
+        />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </BrowserRouter>
-  )
-}
-
-function HomePage() {
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold text-foreground">
-        Whisper Transcription App
-      </h1>
-      <p className="mt-4 text-muted-foreground">
-        On-premises audio/video transcription application
-      </p>
-    </div>
   )
 }
 

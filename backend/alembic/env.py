@@ -14,7 +14,7 @@ from app.db.session import Base
 from app.core.config import settings
 
 # Import all models to ensure they're registered with Base
-# from app.models import user, task, transcription, history
+from app.models import user
 
 # this is the Alembic Config object
 config = context.config

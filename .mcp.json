@@ -1,0 +1,47 @@
+{
+  "mcpServers": {
+    "arxiv": {
+      "command": "uvx",
+      "args": [
+        "arxiv-mcp-server",
+        "--storage-path",
+        "./paper/storage"
+      ]
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest"
+      ],
+      "env": {}
+    },
+    "context7": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp",
+        "--api-key",
+        "ctx7sk-982a31bb-eeca-4d7e-9ddc-b0aab7e04003"
+      ],
+      "env": {}
+    },
+    "serena": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/oraios/serena",
+        "serena",
+        "start-mcp-server",
+        "--context",
+        "ide-assistant"
+      ]
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["chrome-devtools-mcp@latest"]
+    }
+  }
+}

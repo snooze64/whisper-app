@@ -72,6 +72,10 @@ class Settings(BaseSettings):
         default="uid={username},ou=users,dc=example,dc=com",
         description="LDAP user DN template"
     )
+    USE_MOCK_AUTH: bool = Field(
+        default=False,
+        description="Use mock authentication for development (bypasses LDAP)"
+    )
 
     # JWT
     SECRET_KEY: str = Field(

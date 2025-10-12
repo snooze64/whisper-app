@@ -16,8 +16,34 @@ from app.schemas.auth import TokenResponse
 class AuthService:
     """Authentication service"""
 
+    # Mock users for development
+    MOCK_USERS = {
+        "admin": {"password": "admin123", "email": "admin@example.com", "is_admin": True},
+        "user1": {"password": "user123", "email": "user1@example.com", "is_admin": False},
+    }
+
     def __init__(self, db: AsyncSession):
         self.db = db
+
+    async def authenticate_mock(self, username: str, password: str) -> Optional[dict]:
+        """
+        Mock authentication for development environment
+
+        Args:
+            username: Username
+            password: Password
+
+        Returns:
+            User data dict if authentication successful, None otherwise
+        """
+        user_data = self.MOCK_USERS.get(username)
+        if user_data and user_data["password"] == password:
+            return {
+                "username": username,
+                "email": user_data["email"],
+                "is_admin": user_data["is_admin"]
+            }
+        return None
 
     async def authenticate_ldap(self, username: str, password: str) -> bool:
         """
@@ -119,15 +145,31 @@ class AuthService:
         Returns:
             Token response or None if authentication failed
         """
-        # Authenticate against LDAP
-        if not await self.authenticate_ldap(username, password):
-            return None
+        # Use mock authentication in development mode
+        if settings.USE_MOCK_AUTH:
+            mock_user = await self.authenticate_mock(username, password)
+            if not mock_user:
+                return None
 
-        # Get or create user in database
-        user = await self.get_user_by_username(username)
-        if not user:
-            # Create user on first login
-            user = await self.create_user(username=username)
+            # Get or create user in database
+            user = await self.get_user_by_username(username)
+            if not user:
+                # Create user on first login with mock data
+                user = await self.create_user(
+                    username=mock_user["username"],
+                    email=mock_user["email"],
+                    is_admin=mock_user["is_admin"]
+                )
+        else:
+            # Authenticate against LDAP
+            if not await self.authenticate_ldap(username, password):
+                return None
+
+            # Get or create user in database
+            user = await self.get_user_by_username(username)
+            if not user:
+                # Create user on first login
+                user = await self.create_user(username=username)
 
         # Update last login
         await self.update_last_login(user)

@@ -88,12 +88,12 @@
 | [要件定義書](./docs/requirement.md) | プロジェクトの要件定義 |
 | [技術スタック選定書](./docs/technology-stack.md) | 使用技術の選定理由 |
 | [システムアーキテクチャ設計書](./docs/architecture.md) | システム全体の設計 |
+| [データベース設計書](./docs/database-design.md) | データベーススキーマ設計 |
 | [開発計画書](./docs/development-plan.md) | 開発スケジュールとタスク |
 
 ### 開発・運用ドキュメント（作成予定）
 
 - API仕様書
-- データベース設計書
 - セットアップガイド
 - デプロイガイド
 - トラブルシューティング
@@ -112,23 +112,23 @@
 
 ```bash
 # リポジトリのクローン
-git clone <repository-url>
+git clone https://github.com/snooze64/whisper-app.git
 cd whisper-app
 
 # 環境変数の設定
-cp .env.example .env
-# .env ファイルを編集
+cp backend/.env.example backend/.env
+# backend/.env ファイルを編集（必要に応じて）
 
-# Dockerコンテナのビルドと起動
-docker-compose up -d --build
+# 開発用Dockerコンテナのビルドと起動
+docker-compose up -d postgres redis backend frontend-dev
 
 # データベースマイグレーション
 docker-compose exec backend alembic upgrade head
 
 # アクセス
-# フロントエンド: http://localhost:3000
+# フロントエンド: http://localhost:5173
 # バックエンドAPI: http://localhost:8000
-# API ドキュメント: http://localhost:8000/docs
+# API ドキュメント: http://localhost:8000/api/docs
 ```
 
 ### 本番環境デプロイ

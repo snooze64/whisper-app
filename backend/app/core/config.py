@@ -23,8 +23,15 @@ class Settings(BaseSettings):
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
-    def assemble_cors_origins(cls, v: str | List[str]) -> List[str]:
-        if isinstance(v, str) and not v.startswith("["):
+    def assemble_cors_origins(cls, v: str | List[str] | None) -> List[str]:
+        if v is None or v == "":
+            return ["http://localhost:3000", "http://localhost:5173"]
+        if isinstance(v, str):
+            if v.startswith("["):
+                # JSON array string
+                import json
+                return json.loads(v)
+            # Comma-separated string
             return [i.strip() for i in v.split(",")]
         elif isinstance(v, list):
             return v

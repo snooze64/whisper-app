@@ -149,7 +149,7 @@ services:
         - NO_PROXY=${NO_PROXY:-}
     container_name: whisper-celery-worker-prod
     restart: always
-    command: celery -A app.celery_app worker --loglevel=info --concurrency=2 --max-tasks-per-child=10
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=2 --max-tasks-per-child=10 -Q transcription,celery
     volumes:
       - upload-data:/data/uploads
       - result-data:/data/results

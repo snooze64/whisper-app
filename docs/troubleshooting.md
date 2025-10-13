@@ -277,6 +277,49 @@ transcriber.load_model()
 print("✅ Model loaded successfully")
 ```
 
+### 問題: タスクがpending状態のまま処理されない
+
+**症状**:
+- ファイルアップロード後、タスクが "pending" のまま変化しない
+- Celeryワーカーはログに表示されているが、タスクを処理しない
+- Redisのタスクキューが空
+
+**原因**:
+- Celeryワーカーが`celery_app.py`で設定されたタスクルーティングキュー（"transcription"）をリッスンしていない
+- ワーカーがデフォルトの"celery"キューのみをリッスンしている
+
+**解決策**:
+
+1. **ワーカーのキュー設定を確認**:
+```bash
+docker-compose -f docker-compose.cpu.yml logs celery-worker | grep "\[queues\]"
+
+# 期待される出力:
+# .> transcription    exchange=transcription(direct) key=transcription
+```
+
+2. **docker-compose.ymlのcelery-workerコマンドを修正**:
+```yaml
+celery-worker:
+  command: celery -A app.celery_app worker --loglevel=info --concurrency=2 --max-tasks-per-child=10 -Q transcription,celery
+```
+
+`-Q transcription,celery` オプションで、ワーカーが両方のキューをリッスンするようにします。
+
+3. **ワーカーを再作成**:
+```bash
+docker-compose -f docker-compose.cpu.yml --env-file .env.cpu up -d celery-worker
+```
+
+4. **正常に動作しているか確認**:
+```bash
+# ワーカーログを確認
+docker-compose -f docker-compose.cpu.yml logs celery-worker | tail -20
+
+# タスクが処理されることを確認
+curl -H "Authorization: Bearer <token>" http://localhost/api/v1/tasks/<task_id>
+```
+
 ### 問題: CUDA 11.4互換性
 
 **症状**:
@@ -309,6 +352,46 @@ docker-compose exec celery-worker pip install -r requirements-transformers-cuda1
 - transformersバックエンドはfaster-whisperより2〜4倍遅い
 - VRAMを1.5〜2倍多く使用する
 - CUDA 11.4が必要な場合のみ使用（faster-whisperにはCUDA 11.8+を推奨）
+
+### 問題: VAD（音声検出）がすべての音声を除外
+
+**症状**:
+- 文字起こしが0セグメントで完了
+- ログに "VAD filter removed XX:XX.XXX of audio" と表示
+- タスクがdiarization段階で失敗: "ValueError: segments not found in transcription_result"
+
+**原因**:
+- テスト用音声ファイル（純粋なトーン、サイン波など）に音声コンテンツが含まれていない
+- VAD（Voice Activity Detection）が音声と認識しない
+- 空のセグメントリストでdiarizationタスクが失敗する（コードのバグ）
+
+**解決策**:
+
+1. **実際の音声コンテンツを含むテスト音声を使用**:
+```bash
+# 実際の録音ファイルを使用するか、テキスト音声変換で生成
+# 例: macOSのsayコマンド
+say -o test_speech.aiff "これはテスト音声です"
+ffmpeg -i test_speech.aiff -ar 16000 test_speech.mp3
+
+# または既存の音声ファイルをアップロード
+```
+
+2. **開発/テスト環境の場合、モックモードを使用**:
+faster-whisperやtransformersがインストールされていない場合、システムは自動的にモックモードにフォールバックし、音声の長さに基づいてダミーのセグメントを生成します。
+
+3. **コードの改善（将来の修正）**:
+`backend/app/tasks/transcription_tasks.py`の`diarize_audio_task`関数を修正して、空のセグメントリストを許可するようにする必要があります:
+```python
+# 現在（エラーになる）:
+if not segments:
+    raise ValueError("segments not found in transcription_result")
+
+# 改善後（空のセグメントを許可）:
+if segments is None:
+    raise ValueError("segments not found in transcription_result")
+# 空のリスト [] は有効なケース（音声なし）として処理
+```
 
 ## GPUの問題
 
@@ -388,6 +471,46 @@ cat .env | grep DATABASE_URL
 3. **手動で接続をテスト**:
 ```bash
 docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "SELECT 1;"
+```
+
+### 問題: データベーステーブルが存在しない
+
+**症状**:
+- "relation 'users' does not exist" エラー
+- "relation 'tasks' does not exist" エラー
+- ログインやファイルアップロードが失敗
+
+**原因**:
+- データベースマイグレーションが実行されていない
+- ボリュームを削除して再作成した後、マイグレーションを実行していない
+
+**解決策**:
+
+1. **マイグレーションを手動で実行**:
+```bash
+# CPU本番環境の場合
+docker-compose -f docker-compose.cpu.yml --env-file .env.cpu exec backend alembic upgrade head
+
+# GPU本番環境の場合
+docker-compose -f docker-compose.gpu.yml --env-file .env.gpu exec backend alembic upgrade head
+
+# 開発環境の場合
+docker-compose -f docker-compose.dev.yml exec backend alembic upgrade head
+```
+
+2. **マイグレーション履歴の確認**:
+```bash
+docker-compose -f docker-compose.cpu.yml --env-file .env.cpu exec backend alembic current
+docker-compose -f docker-compose.cpu.yml --env-file .env.cpu exec backend alembic history
+```
+
+3. **自動マイグレーションを設定** (startup時に実行):
+`backend/app/main.py`に以下を追加（推奨）:
+```python
+@app.on_event("startup")
+async def startup_event():
+    # Run migrations automatically
+    os.system("alembic upgrade head")
 ```
 
 ### 問題: データベースの動作が遅い
@@ -574,6 +697,43 @@ app.add_middleware(
 
 2. **リクエストが正しいURLに送信されているか確認**:
 - フロントエンドは相対パス（`/api/v1/...`）を使用する必要がある
+
+### 問題: フロントエンドがAPIのURLをハードコード
+
+**症状**:
+- フロントエンドが`http://localhost:8000`に直接接続しようとする
+- 本番環境でCORSエラーが発生
+- ログインやAPIリクエストが失敗
+
+**原因**:
+- `VITE_API_URL`環境変数がビルド時に正しく渡されていない
+- フロントエンドのビルドファイルに開発環境のURLがハードコードされている
+
+**解決策**:
+
+1. **フロントエンドの再ビルド**:
+```bash
+# CPU本番環境の場合
+docker-compose -f docker-compose.cpu.yml --env-file .env.cpu build frontend-build
+
+# GPU本番環境の場合
+docker-compose -f docker-compose.gpu.yml --env-file .env.gpu build frontend-build
+
+# ビルド成果物をホストにコピー
+docker-compose -f docker-compose.cpu.yml --env-file .env.cpu run --rm frontend-build sh -c "cp -r /dist/* /app/dist/"
+```
+
+2. **.envファイルでVITE_API_URLが正しく設定されているか確認**:
+```bash
+cat .env.cpu | grep VITE_API_URL
+# CPU本番環境テストの場合: VITE_API_URL=http://localhost
+# 実際の本番環境の場合: VITE_API_URL=https://your-domain.com
+```
+
+3. **Nginxを再起動**:
+```bash
+docker-compose -f docker-compose.cpu.yml --env-file .env.cpu restart nginx
+```
 
 ## ヘルプの取得
 

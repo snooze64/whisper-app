@@ -147,7 +147,7 @@ services:
         - NO_PROXY=${NO_PROXY:-}
     container_name: whisper-celery-worker-prod
     restart: always
-    command: celery -A app.celery_app worker --loglevel=info --concurrency=2 --max-tasks-per-child=10
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=2 --max-tasks-per-child=10 -Q transcription,celery
     volumes:
       - upload-data:/data/uploads
       - result-data:/data/results
@@ -211,12 +211,14 @@ services:
       - whisper-network
 
   # Nginx Reverse Proxy with SSL
+  # For testing without SSL, use nginx.prod.nossl.conf
+  # For production with SSL, use nginx.prod.conf
   nginx:
     image: nginx:alpine
     container_name: whisper-nginx-prod
     restart: always
     volumes:
-      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/nginx.prod.nossl.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
       - ./frontend/dist:/usr/share/nginx/html:ro
       - nginx-cache:/var/cache/nginx

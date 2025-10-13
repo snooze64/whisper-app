@@ -108,6 +108,8 @@
 | [受け入れテストシナリオ](./docs/acceptance-test-scenarios.md) | 88+テストケース |
 | [ユーザーマニュアル](./docs/user-manual.md) | エンドユーザー向けマニュアル（日本語） |
 | [リリースノート](./docs/release-notes.md) | v1.0.0リリース情報 |
+| [CPU本番環境テストレポート](./docs/cpu-production-test-2025-10-13.md) | CPU本番環境E2Eテスト結果 |
+| [Playwright E2Eテスト結果](./docs/playwright-e2e-test-2025-10-13.md) | 実音声ファイルでの完全E2Eテスト ✅ |
 
 ---
 
@@ -166,12 +168,12 @@ git clone https://github.com/snooze64/whisper-app.git
 cd whisper-app
 
 # 環境変数ファイルの作成
-cp .env.example .env
-# 必要に応じて.envを編集（プロキシ設定など）
+cp .env.dev.example .env.dev
+# 必要に応じて.env.devを編集（プロキシ設定など）
 # 詳細は docs/setup-guide.md を参照
 
 # 開発環境用Dockerコンテナのビルドと起動
-docker-compose -f docker-compose.dev.yml up -d --build
+docker-compose -f docker-compose.dev.yml --env-file .env.dev up -d --build
 
 # データベースマイグレーション
 docker-compose -f docker-compose.dev.yml exec backend alembic upgrade head
@@ -239,11 +241,15 @@ celery-worker:
 
 ```bash
 # 環境変数ファイルの作成と編集
-cp .env.example .env
-nano .env  # 本番用の設定に変更
-# - データベース、Redis、LDAPの設定
-# - シークレットキーの生成
-# - ドメイン名とSSL設定
+cp .env.gpu.example .env.gpu
+nano .env.gpu  # 本番用の設定に変更
+# - CHANGE_MEの値を全て実際の値に置き換え
+# - データベース認証情報（POSTGRES_USER, POSTGRES_PASSWORD）
+# - 強力なSECRET_KEY（例: openssl rand -hex 32）
+# - LDAP設定（LDAP_SERVER, LDAP_BASE_DN等）
+# - ドメイン名とSSL設定（DOMAIN_NAME, SSL_EMAIL）
+# - GPU設定（CUDA_VISIBLE_DEVICES, GPU_MEMORY_THRESHOLD_MB）
+# - Whisperバックエンド選択（WHISPER_BACKEND）
 # - プロキシ設定（必要な場合）
 # 詳細は docs/deployment-guide.md を参照
 
@@ -251,7 +257,7 @@ nano .env  # 本番用の設定に変更
 ./scripts/build-frontend.sh
 
 # GPU環境用Dockerコンテナのビルドと起動
-docker-compose -f docker-compose.gpu.yml up -d --build
+docker-compose -f docker-compose.gpu.yml --env-file .env.gpu up -d --build
 
 # データベースマイグレーション
 docker-compose -f docker-compose.gpu.yml exec backend alembic upgrade head
@@ -265,15 +271,23 @@ docker-compose -f docker-compose.gpu.yml logs -f
 GPU非搭載サーバーでの本番デプロイには `docker-compose.cpu.yml` を使用します：
 
 ```bash
-# 環境変数ファイルの作成と編集（上記と同じ）
-cp .env.example .env
-nano .env
+# 環境変数ファイルの作成と編集
+cp .env.cpu.example .env.cpu
+nano .env.cpu  # 本番用の設定に変更
+# - CHANGE_MEの値を全て実際の値に置き換え
+# - データベース認証情報（POSTGRES_USER, POSTGRES_PASSWORD）
+# - 強力なSECRET_KEY（例: openssl rand -hex 32）
+# - LDAP設定（LDAP_SERVER, LDAP_BASE_DN等）
+# - ドメイン名とSSL設定（DOMAIN_NAME, SSL_EMAIL）
+# - Whisperバックエンド選択（WHISPER_BACKEND）
+# - プロキシ設定（必要な場合）
+# 詳細は docs/deployment-guide.md を参照
 
 # フロントエンドのビルド
 ./scripts/build-frontend.sh
 
 # CPU専用環境用Dockerコンテナのビルドと起動
-docker-compose -f docker-compose.cpu.yml up -d --build
+docker-compose -f docker-compose.cpu.yml --env-file .env.cpu up -d --build
 
 # データベースマイグレーション
 docker-compose -f docker-compose.cpu.yml exec backend alembic upgrade head

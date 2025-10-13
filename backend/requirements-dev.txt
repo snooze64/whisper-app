@@ -28,12 +28,12 @@ email-validator==2.1.0
 
 # Audio/Transcription (Development - CPU only)
 # Note: For GPU support, use requirements.txt with CUDA-enabled packages
-# faster-whisper and its dependencies will fail to install without proper CUDA setup
-# For development, transcription will use mock mode
-numpy==1.24.3
+numpy==1.23.5  # 1.24でnp.boolが削除されたため、Resemblyzer互換性のため1.23を使用
 scikit-learn==1.3.2
-librosa==0.10.1
+librosa==0.9.1  # 0.10でmelspectrogramがキーワード専用引数になったため、Resemblyzer互換性のため0.9を使用
 resemblyzer==0.1.1.dev0
+faster-whisper==1.2.0  # CPU版でもTinyモデルは動作可能、large-v3-turboサポート
+ffmpeg-python==0.2.0  # 音声抽出用
 
 # Testing
 pytest==7.4.3

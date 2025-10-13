@@ -3,7 +3,7 @@ API v1 router
 """
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, upload, tasks
+from app.api.v1.endpoints import auth, upload, tasks, transcriptions, history, admin
 
 api_router = APIRouter()
 
@@ -16,6 +16,11 @@ api_router.include_router(upload.router, tags=["upload"])
 # Include task management endpoints
 api_router.include_router(tasks.router, tags=["tasks"])
 
-# Future endpoints will be added here
-# api_router.include_router(history.router, prefix="/history", tags=["history"])
-# api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
+# Include transcription endpoints
+api_router.include_router(transcriptions.router, tags=["transcriptions"])
+
+# Include processing history endpoints
+api_router.include_router(history.router, tags=["history"])
+
+# Include admin endpoints
+api_router.include_router(admin.router, tags=["admin"])

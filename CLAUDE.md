@@ -158,7 +158,7 @@ REDIS_URL=redis://redis:6379
 # Authentication
 LDAP_SERVER=ldap://ldap-server:389
 
-# GPU (CUDA 11.4 or 12.4 required)
+# GPU (CUDA 11.8 or 12.1+ required)
 CUDA_VISIBLE_DEVICES=0
 
 # File Storage
@@ -191,7 +191,7 @@ FILE_RETENTION_HOURS=24
 - **File Retention**: Automatic 24-hour deletion (uploads + results)
 - **Concurrent Users**: Max 20 users, queue-based processing
 - **File Limits**: 1GB max (configurable via env var)
-- **CUDA Version**: 11.4 or 12.4 only (impacts PyTorch build)
+- **CUDA Version**: 11.8 or 12.1+ (impacts PyTorch build)
 
 ## Testing Strategy
 

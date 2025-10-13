@@ -12,21 +12,25 @@
 | [technology-stack.md](./technology-stack.md) | 技術スタック選定書 | ✅ 完成 |
 | [architecture.md](./architecture.md) | システムアーキテクチャ設計書 | ✅ 完成 |
 | [database-design.md](./database-design.md) | データベース設計書 | ✅ 完成 |
-| [api-specification.md](./api-specification.md) | API仕様書 | 🚧 作成予定 |
+| [api-specification.md](./api-specification.md) | API仕様書 | ✅ 完成 (Phase 9) |
 
 ### 2. 開発・運用
 
 | ドキュメント | 説明 | ステータス |
 |------------|------|----------|
-| [development-plan.md](./development-plan.md) | 開発計画書 | ✅ 完成 |
-| [setup-guide.md](./setup-guide.md) | セットアップガイド | 🚧 作成予定 |
-| [deployment-guide.md](./deployment-guide.md) | デプロイガイド | 🚧 作成予定 |
+| [development-plan.md](./development-plan.md) | 開発計画書（Phase 1-9完了、Phase 10進行中） | ✅ 完成 |
+| [optimization-report.md](./optimization-report.md) | Phase 8最適化レポート | ✅ 完成 |
+| [setup-guide.md](./setup-guide.md) | セットアップガイド | ✅ 完成 (Phase 9) |
+| [deployment-guide.md](./deployment-guide.md) | デプロイガイド | ✅ 完成 (Phase 9) |
 
-### 3. その他
+### 3. テスト・リリース
 
 | ドキュメント | 説明 | ステータス |
 |------------|------|----------|
-| [troubleshooting.md](./troubleshooting.md) | トラブルシューティング | 🚧 作成予定 |
+| [acceptance-test-scenarios.md](./acceptance-test-scenarios.md) | 受け入れテストシナリオ | ✅ 完成 (Phase 10) |
+| [user-manual.md](./user-manual.md) | ユーザーマニュアル（日本語） | ✅ 完成 (Phase 10) |
+| [release-notes.md](./release-notes.md) | リリースノート v1.0.0 | ✅ 完成 (Phase 10) |
+| [troubleshooting.md](./troubleshooting.md) | トラブルシューティング | ✅ 完成 (Phase 9) |
 
 ---
 

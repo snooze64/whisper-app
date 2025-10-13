@@ -111,3 +111,7 @@ async def get_current_admin_user(
             detail="Not enough privileges"
         )
     return current_user
+
+
+# Alias for require_admin
+require_admin = get_current_admin_user

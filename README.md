@@ -59,7 +59,7 @@
 - Python 3.11+
 - FastAPI
 - Celery + Redis
-- faster-whisper
+- faster-whisper / transformers (切り替え可能)
 - Resemblyzer
 - SQLAlchemy
 - PostgreSQL
@@ -73,7 +73,7 @@
 **インフラ**:
 - Docker + Docker Compose
 - Nginx
-- NVIDIA GPU (CUDA 11.4/12.4)
+- NVIDIA GPU (CUDA 11.4+ for transformers / 11.8+ for faster-whisper)
 
 ---
 
@@ -115,7 +115,29 @@
 **本番環境（GPU必須）**:
 - Docker + Docker Compose
 - NVIDIA GPU + NVIDIA Container Toolkit
-- CUDA 11.4 または 12.4
+- CUDA 11.4+ (transformers backend) または CUDA 11.8+/12.1+ (faster-whisper backend)
+
+### Docker Composeファイルの使い分け
+
+プロジェクトには用途に応じて2つのDocker Composeファイルがあります：
+
+| ファイル | 用途 | 使用方法 |
+|---------|------|---------|
+| `docker-compose.yml` | **開発環境用（デフォルト）** | `docker-compose up -d` |
+| `docker-compose.prod.yml` | **本番環境用** | `docker-compose -f docker-compose.prod.yml up -d` |
+
+**開発環境の特徴**:
+- GPU不要（CPU版faster-whisper、またはモックモード）
+- ホットリロード対応
+- モック認証有効
+- ポート: フロントエンド 5174、バックエンド 8001
+
+**本番環境の特徴**:
+- GPU必須（CUDA対応）
+- SSL/HTTPS対応
+- 自動バックアップ
+- ファイル自動クリーンアップ
+- リソース制限設定
 
 ### セットアップ（開発環境）
 
@@ -150,6 +172,32 @@ docker-compose exec backend alembic upgrade head
 2. ログインページで上記のアカウント情報を入力
 3. ログイン成功後、ダッシュボードが表示される
 
+### Whisper Backend選択
+
+本プロジェクトでは、環境に応じて2つのWhisperバックエンドを選択できます：
+
+| バックエンド | CUDA要件 | 処理速度 | VRAM使用量 | 用途 |
+|------------|---------|---------|-----------|------|
+| **faster-whisper** (デフォルト) | 11.8+ / 12.x | ⚡ 高速 | 少 | 推奨 |
+| **transformers** | 11.4+ | 🐌 2-4倍遅い | 1.5-2倍 | CUDA 11.4環境向け |
+
+**切り替え方法**:
+
+`docker-compose.yml` の `celery-worker` サービスに環境変数を設定：
+
+```yaml
+celery-worker:
+  environment:
+    - WHISPER_BACKEND=faster-whisper  # デフォルト（推奨）
+    # または
+    - WHISPER_BACKEND=transformers    # CUDA 11.4環境向け
+```
+
+**CUDA 11.4環境での注意**:
+- faster-whisperはCUDA 11.8以上が必要
+- CUDA 11.4環境では必ず `WHISPER_BACKEND=transformers` を設定
+- 詳細は[技術スタック選定書](./docs/technology-stack.md)の Section 14.3を参照
+
 ### トラブルシューティング
 
 問題が発生した場合は、[トラブルシューティングガイド](./docs/troubleshooting.md)を参照してください。
@@ -159,9 +207,22 @@ docker-compose exec backend alembic upgrade head
 - GPU/CUDA関連エラー → 開発用Dockerfileを使用
 - CORS設定エラー → 環境変数の修正
 
-### 本番環境デプロイ
+### セットアップ（本番環境）
 
-詳細は[デプロイガイド](./docs/deployment-guide.md)を参照してください（作成予定）。
+本番環境では `docker-compose.prod.yml` を使用します：
+
+```bash
+# 本番用Dockerコンテナのビルドと起動
+docker-compose -f docker-compose.prod.yml up -d --build
+
+# データベースマイグレーション
+docker-compose -f docker-compose.prod.yml exec backend alembic upgrade head
+
+# ログ確認
+docker-compose -f docker-compose.prod.yml logs -f
+```
+
+詳細な本番環境セットアップ手順は[デプロイガイド](./docs/deployment-guide.md)を参照してください。
 
 ---
 
@@ -182,8 +243,9 @@ whisper-app/
 │   ├── tests/           # テスト
 │   ├── Dockerfile       # 本番用（GPU対応）
 │   ├── Dockerfile.dev   # 開発用（GPU不要）
-│   ├── requirements.txt # 本番用（GPU版）
-│   └── requirements-dev.txt  # 開発用（CPU版）
+│   ├── requirements.txt # 本番用（GPU版、faster-whisper）
+│   ├── requirements-dev.txt  # 開発用（CPU版）
+│   └── requirements-transformers-cuda114.txt  # CUDA 11.4用（transformers）
 ├── frontend/            # React フロントエンド
 │   ├── src/
 │   │   ├── components/  # コンポーネント
@@ -200,7 +262,8 @@ whisper-app/
 │   ├── database-design.md
 │   ├── development-plan.md
 │   └── troubleshooting.md
-├── docker-compose.yml   # Docker Compose 設定
+├── docker-compose.yml   # Docker Compose 設定（開発環境）
+├── docker-compose.prod.yml  # Docker Compose 設定（本番環境）
 └── README.md
 ```
 
@@ -238,7 +301,7 @@ docker-compose exec frontend npm run test:e2e
 - **メモリ**: 32GB以上
 - **GPU**: NVIDIA A100 40GB（実質利用可能メモリ: 20-30GB）
 - **ストレージ**: 500GB以上
-- **CUDA**: 11.4 または 12.4
+- **CUDA**: 11.4+ (transformers) または 11.8+/12.1+ (faster-whisper推奨)
 
 ### 性能目標
 
@@ -282,11 +345,37 @@ docker-compose exec frontend npm run test:e2e
 | Phase 1: 環境構築・基盤実装 | ✅ 完了 | 2025-10-13 |
 | Phase 2: 認証・ユーザー管理 | ✅ 完了 | 2025-10-13 |
 | Phase 3: ファイルアップロード機能 | ✅ 完了 | 2025-10-13 |
-| Phase 4: Whisper文字起こし機能 | 📋 未着手 | - |
+| Phase 4: Whisper文字起こし機能 | ✅ 完了 | 2025-10-13 |
+| Phase 5: 話者分離機能 (Resemblyzer) | ✅ 完了 | 2025-10-13 |
+| Phase 6: 結果表示・編集機能 | ✅ 完了 | 2025-10-13 |
+| Phase 7: 処理履歴・管理機能 | 📋 未着手 | - |
 
 詳細は[開発計画書](./docs/development-plan.md)を参照してください。
+
+### Phase 6 実装状況 ✅ 完了
+
+**バックエンド**:
+- ✅ Transcriptionモデル・マイグレーション
+- ✅ 文字起こし結果取得/編集API（3エンドポイント）
+- ✅ 字幕ファイル生成（SRT/VTT形式、話者ラベル付き）
+- ✅ 字幕ダウンロードAPI
+
+**フロントエンド**:
+- ✅ 結果表示コンポーネント（TranscriptionViewer）
+- ✅ セグメント編集UI（インライン編集）
+- ✅ タイムスタンプ表示・編集
+- ✅ 話者ラベル表示・変更
+- ✅ 字幕ダウンロードボタン（SRT/VTT）
+
+### 重要な技術的注意事項
+
+**Resemblyzer依存関係**:
+- `numpy==1.23.5` 必須（1.24+は非互換）
+- `librosa==0.9.1` 必須（0.10+は非互換）
+
+詳細は[技術スタック選定書](./docs/technology-stack.md)を参照してください。
 
 ---
 
 **最終更新日**: 2025-10-13
-**バージョン**: 1.0.0
+**バージョン**: 1.0.1

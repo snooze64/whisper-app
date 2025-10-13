@@ -56,8 +56,8 @@ export default function Dashboard() {
               <p className="text-sm text-muted-foreground">
                 過去の文字起こし処理を確認
               </p>
-              <Button className="mt-4" variant="outline" disabled>
-                準備中
+              <Button className="mt-4" variant="outline" onClick={() => navigate('/history')}>
+                履歴を見る
               </Button>
             </CardContent>
           </Card>
@@ -71,8 +71,8 @@ export default function Dashboard() {
                 <p className="text-sm text-muted-foreground">
                   システム利用状況と統計
                 </p>
-                <Button className="mt-4" variant="outline" disabled>
-                  準備中
+                <Button className="mt-4" variant="outline" onClick={() => navigate('/admin')}>
+                  ダッシュボード
                 </Button>
               </CardContent>
             </Card>

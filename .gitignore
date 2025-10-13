@@ -82,8 +82,9 @@ uploads/
 results/
 temp/
 
-# Model files (large)
+# Model files (large) - Whisper model files only
 models/
+!backend/app/models/
 *.pt
 *.pth
 *.bin

@@ -96,4 +96,7 @@ export const authAPI = {
   },
 }
 
+// Named export for convenience
+export const api = apiClient
+
 export default apiClient

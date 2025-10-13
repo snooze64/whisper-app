@@ -42,8 +42,8 @@ export default function Dashboard() {
               <p className="text-sm text-muted-foreground">
                 音声・動画ファイルをアップロードして文字起こしを開始
               </p>
-              <Button className="mt-4" disabled>
-                準備中
+              <Button className="mt-4" onClick={() => navigate('/upload')}>
+                アップロード
               </Button>
             </CardContent>
           </Card>

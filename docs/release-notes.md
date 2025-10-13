@@ -322,6 +322,96 @@ Whisper App v1.0.0は、企業向けに設計されたオンプレミス型の�
 - ✅ transformersバックエンドが正しくアクティブ化されることを確認
 - ✅ 後方互換性を確認
 
+#### プロキシサポートと環境変数の拡張 ✅
+**完了日**: 2025-10-14
+
+**背景**: 企業環境では、インターネットアクセスにプロキシサーバーが必要な場合が多く、初期リリースではプロキシ設定のサポートが不足していました。また、環境変数の管理が不完全で、一部の設定がハードコードされていました。
+
+**実装された機能**:
+
+1. **プロキシ環境変数サポート** ✅
+   - `HTTP_PROXY`、`HTTPS_PROXY`、`NO_PROXY`環境変数のサポート
+   - すべてのDockerfile(backend/Dockerfile、backend/Dockerfile.dev、frontend/Dockerfile、frontend/Dockerfile.dev)にプロキシ設定を追加
+   - docker-compose.ymlとdocker-compose.prod.ymlの全サービスでプロキシ環境変数を設定
+   - ビルド時と実行時の両方でプロキシをサポート
+
+2. **環境変数の包括的な管理** ✅
+   - `.env.example`に新しい環境変数を追加:
+     - `ALGORITHM` (JWT署名アルゴリズム)
+     - `ACCESS_TOKEN_EXPIRE_MINUTES` (アクセストークン有効期限)
+     - `REFRESH_TOKEN_EXPIRE_DAYS` (リフレッシュトークン有効期限)
+     - `LDAP_USER_DN_TEMPLATE` (LDAP DNテンプレート)
+     - `DEFAULT_WHISPER_MODEL` (デフォルトWhisperモデル)
+     - `DEFAULT_LANGUAGE` (デフォルト文字起こし言語)
+     - `GPU_MEMORY_THRESHOLD_MB` (GPU メモリ閾値)
+   - docker-compose.ymlとdocker-compose.prod.ymlで環境変数参照を`${VAR:-default}`形式に統一
+   - ハードコードされた値を環境変数参照に置き換え
+
+3. **フロントエンド環境変数サポート** ✅
+   - `frontend/.env.example`ファイルを新規作成
+   - `VITE_API_URL`のビルド時設定をサポート
+   - フロントエンドDockerfileに`VITE_API_URL`をARGとして追加
+   - docker-compose.prod.ymlに`frontend-build`サービスを追加(profile: build)
+
+4. **フロントエンドビルド自動化** ✅
+   - `scripts/build-frontend.sh`スクリプトを新規作成
+   - スクリプトの機能:
+     - `.env`ファイルの存在チェック
+     - `VITE_API_URL`の自動読み込みと検証
+     - frontendイメージのビルド
+     - ビルド成果物の`./frontend/dist`への自動抽出
+   - 実行権限付き(chmod +x)
+
+**変更されたファイル**:
+- `.env.example`: プロキシ設定と新しい環境変数を追加
+- `frontend/.env.example`: 新規作成
+- `docker-compose.yml`: 全サービスにプロキシ環境変数を追加、環境変数参照を統一
+- `docker-compose.prod.yml`: 全サービスにプロキシ環境変数を追加、frontend-buildサービスを追加
+- `backend/Dockerfile`: プロキシARGとENVを追加
+- `backend/Dockerfile.dev`: プロキシARGとENVを追加
+- `frontend/Dockerfile`: プロキシARGとVITE_API_URL ARGを追加
+- `frontend/Dockerfile.dev`: プロキシARGとVITE_API_URL ENVを追加
+- `scripts/build-frontend.sh`: 新規作成
+
+**ドキュメント更新**:
+- ✅ `docs/deployment-guide.md`:
+  - ステップ2の環境設定にVITE_API_URLとプロキシ設定の説明を追加
+  - ステップ3のフロントエンドビルドセクションをbuild-frontend.shスクリプト使用に更新
+  - 更新手順のフロントエンドビルドもスクリプト使用に変更
+- ✅ `docs/setup-guide.md`:
+  - 開発環境の環境変数セクションに新しい変数とプロキシ設定を追加
+  - 本番環境の環境変数セクションに新しい変数、VITE_API_URL、プロキシ設定を追加
+  - 本番用フロントエンドビルドセクションをbuild-frontend.shスクリプト使用に更新
+- ✅ `docs/release-notes.md`: 本セクションを追加
+
+**メリット**:
+- **企業環境対応**: プロキシサーバー経由での動作が可能に
+- **設定の一元管理**: 全ての設定を`.env`ファイルで管理可能
+- **デプロイの簡素化**: フロントエンドビルドが自動化され、手順が簡単に
+- **柔軟性の向上**: JWT有効期限、Whisperモデル、言語などを環境変数で簡単に変更可能
+- **保守性の向上**: ハードコードされた値を削減、設定変更が容易に
+
+**設定例**:
+
+`.env`ファイルでのプロキシ設定:
+```bash
+# Proxy Configuration (Optional)
+HTTP_PROXY=http://proxy.example.com:8080
+HTTPS_PROXY=http://proxy.example.com:8080
+NO_PROXY=localhost,127.0.0.1,postgres,redis,backend,celery-worker
+```
+
+フロントエンドビルドの実行:
+```bash
+# VITE_API_URLを.envに設定
+echo "VITE_API_URL=https://yourdomain.com" >> .env
+
+# 自動ビルドスクリプトを実行
+./scripts/build-frontend.sh
+```
+
+**互換性**: 既存のデプロイとの完全な後方互換性を維持。プロキシ環境変数は省略可能（デフォルト値は空文字列）。
+
 ---
 
 ## 機能ハイライト

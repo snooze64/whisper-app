@@ -102,28 +102,56 @@ export SECRET_KEY=$(openssl rand -hex 32)
 export POSTGRES_PASSWORD=$(openssl rand -base64 32)
 
 # 生成されたシークレットで.envを更新
-sed -i "s/your_secret_key_here/$SECRET_KEY/" .env
-sed -i "s/your_postgres_password/$POSTGRES_PASSWORD/" .env
+sed -i "s/CHANGE_THIS_TO_RANDOM_SECRET_KEY/$SECRET_KEY/" .env
+sed -i "s/CHANGE_THIS_STRONG_PASSWORD/$POSTGRES_PASSWORD/" .env
 
 # ドメイン名の更新
 export DOMAIN=yourdomain.com
 sed -i "s/yourdomain.com/$DOMAIN/g" .env
 sed -i "s/yourdomain.com/$DOMAIN/g" nginx/nginx.prod.conf
+
+# VITE_API_URLの設定（フロントエンドビルド用）
+# 本番環境のAPIエンドポイントを指定
+# 例: https://yourdomain.com または https://api.yourdomain.com
+sed -i "s|VITE_API_URL=.*|VITE_API_URL=https://$DOMAIN|" .env
+
+# プロキシ環境の場合は、以下のコメントを外して設定
+# sed -i "s|# HTTP_PROXY=|HTTP_PROXY=|" .env
+# sed -i "s|# HTTPS_PROXY=|HTTPS_PROXY=|" .env
+# sed -i "s|# NO_PROXY=|NO_PROXY=|" .env
 ```
 
 ### ステップ3: フロントエンドのビルド
 
+本番環境用のフロントエンドをビルドします。VITE_API_URLは`.env`ファイルから自動的に読み込まれます。
+
+#### 自動ビルドスクリプトの使用（推奨）
+
 ```bash
-cd frontend
+# ビルドスクリプトに実行権限を付与
+chmod +x scripts/build-frontend.sh
 
-# 依存関係のインストール
-npm install
-
-# 本番環境用のビルド
-npm run build
-
-cd ..
+# ビルドスクリプトを実行
+./scripts/build-frontend.sh
 ```
+
+このスクリプトは以下を自動的に実行します：
+1. `.env`ファイルから`VITE_API_URL`を読み込む
+2. フロントエンドのDockerイメージをビルド（VITE_API_URLをbuild引数として渡す）
+3. ビルド成果物を`./frontend/dist`に抽出
+
+#### 手動ビルド（オプション）
+
+```bash
+# フロントエンドのDockerイメージをビルド
+docker-compose -f docker-compose.prod.yml build frontend-build
+
+# ビルド成果物を抽出
+docker-compose -f docker-compose.prod.yml run --rm frontend-build \
+  sh -c "cp -r /usr/share/nginx/html/* /dist/"
+```
+
+**注意**: 手動ビルドの場合も、`.env`ファイルに`VITE_API_URL`が設定されている必要があります。
 
 ### ステップ4: データディレクトリの準備
 
@@ -576,10 +604,7 @@ git checkout tags/v1.1.0  # または特定のバージョン
 git log v1.0.0..v1.1.0
 
 # 5. フロントエンドの更新
-cd frontend
-npm install
-npm run build
-cd ..
+./scripts/build-frontend.sh
 
 # 6. サービスの停止
 docker-compose -f docker-compose.prod.yml down

@@ -260,32 +260,84 @@ cp .env.example .env
 `.env`を開発設定で編集:
 
 ```bash
-# Database
+# ========================================
+# Database Configuration
+# ========================================
 POSTGRES_USER=whisper_dev
 POSTGRES_PASSWORD=dev_password_123
 POSTGRES_DB=whisper_dev
-DATABASE_URL=postgresql+asyncpg://whisper_dev:dev_password_123@postgres:5432/whisper_dev
+DATABASE_URL=postgresql://whisper_dev:dev_password_123@postgres:5432/whisper_dev
 
-# Redis
-REDIS_URL=redis://redis:6379
+# ========================================
+# Redis Configuration
+# ========================================
+REDIS_URL=redis://redis:6379/0
+CELERY_BROKER_URL=redis://redis:6379/0
+CELERY_RESULT_BACKEND=redis://redis:6379/0
 
-# Security (generate with: openssl rand -hex 32)
+# ========================================
+# Security
+# ========================================
+# Generate with: openssl rand -hex 32
 SECRET_KEY=your_dev_secret_key_here
 
-# LDAP (configure for your LDAP server)
+# JWT Configuration
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=15
+REFRESH_TOKEN_EXPIRE_DAYS=7
+
+# ========================================
+# CORS Configuration
+# ========================================
+BACKEND_CORS_ORIGINS=["http://localhost:3000","http://localhost:5173","http://localhost:5174","http://localhost:8001"]
+
+# ========================================
+# LDAP Authentication
+# ========================================
 LDAP_SERVER=ldap://your-ldap-server:389
 LDAP_BASE_DN=dc=example,dc=com
-LDAP_BIND_DN=cn=admin,dc=example,dc=com
-LDAP_BIND_PASSWORD=ldap_password
-LDAP_USER_SEARCH_BASE=ou=users,dc=example,dc=com
-LDAP_USER_OBJECT_CLASS=inetOrgPerson
+LDAP_USER_DN_TEMPLATE=uid={username},ou=users,dc=example,dc=com
 
-# File Settings
+# Set to true to use mock authentication (development only)
+USE_MOCK_AUTH=true
+
+# ========================================
+# File Storage Configuration
+# ========================================
 MAX_FILE_SIZE=1073741824  # 1GB
 FILE_RETENTION_HOURS=24
 
-# Environment
+# ========================================
+# Whisper Configuration
+# ========================================
+DEFAULT_WHISPER_MODEL=large-v3-turbo
+DEFAULT_LANGUAGE=ja
+
+# ========================================
+# GPU Configuration
+# ========================================
+CUDA_VISIBLE_DEVICES=0
+GPU_MEMORY_THRESHOLD_MB=10000
+
+# ========================================
+# Frontend Configuration
+# ========================================
+VITE_API_URL=http://localhost:8001
+
+# ========================================
+# Proxy Configuration (Optional)
+# ========================================
+# 企業プロキシ環境の場合は、以下のコメントを外して設定
+# HTTP_PROXY=http://proxy.example.com:8080
+# HTTPS_PROXY=http://proxy.example.com:8080
+# NO_PROXY=localhost,127.0.0.1,postgres,redis,backend,celery-worker,frontend-dev
+
+# ========================================
+# Application Settings
+# ========================================
 ENVIRONMENT=development
+DEBUG=true
+LOG_LEVEL=DEBUG
 ```
 
 ### 3. 開発サービスの起動
@@ -337,44 +389,98 @@ cp .env.example .env
 `.env`を本番設定で編集:
 
 ```bash
-# Database (use strong passwords!)
+# ========================================
+# Database Configuration
+# ========================================
 POSTGRES_USER=whisper_prod
-POSTGRES_PASSWORD=$(openssl rand -base64 32)
+POSTGRES_PASSWORD=CHANGE_THIS_STRONG_PASSWORD  # 強力なパスワードを使用
 POSTGRES_DB=whisper_prod
-DATABASE_URL=postgresql+asyncpg://whisper_prod:${POSTGRES_PASSWORD}@postgres:5432/whisper_prod
+DATABASE_URL=postgresql://whisper_prod:${POSTGRES_PASSWORD}@postgres:5432/whisper_prod
 
-# Redis
-REDIS_URL=redis://redis:6379
+# ========================================
+# Redis Configuration
+# ========================================
+REDIS_URL=redis://redis:6379/0
+CELERY_BROKER_URL=redis://redis:6379/0
+CELERY_RESULT_BACKEND=redis://redis:6379/0
 
-# Security (generate with: openssl rand -hex 32)
-SECRET_KEY=$(openssl rand -hex 32)
-ACCESS_TOKEN_EXPIRE_MINUTES=30
+# ========================================
+# Security
+# ========================================
+# Generate with: openssl rand -hex 32
+SECRET_KEY=CHANGE_THIS_TO_RANDOM_SECRET_KEY
+
+# JWT Configuration
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=15
 REFRESH_TOKEN_EXPIRE_DAYS=7
 
-# LDAP (configure for your LDAP server)
+# ========================================
+# CORS Configuration
+# ========================================
+# 実際のドメインに置き換えてください
+BACKEND_CORS_ORIGINS=["https://yourdomain.com"]
+
+# ========================================
+# LDAP Authentication
+# ========================================
 LDAP_SERVER=ldap://your-ldap-server:389
 LDAP_BASE_DN=dc=company,dc=com
-LDAP_BIND_DN=cn=admin,dc=company,dc=com
-LDAP_BIND_PASSWORD=strong_ldap_password
-LDAP_USER_SEARCH_BASE=ou=users,dc=company,dc=com
-LDAP_USER_OBJECT_CLASS=inetOrgPerson
+LDAP_USER_DN_TEMPLATE=uid={username},ou=users,dc=company,dc=com
 
-# File Settings
+# Set to false in production
+USE_MOCK_AUTH=false
+
+# ========================================
+# File Storage Configuration
+# ========================================
 MAX_FILE_SIZE=1073741824  # 1GB
 FILE_RETENTION_HOURS=24
 
-# Backup
-BACKUP_RETENTION_DAYS=7
+# ========================================
+# Whisper Configuration
+# ========================================
+DEFAULT_WHISPER_MODEL=large-v3-turbo
+DEFAULT_LANGUAGE=ja
 
-# SSL/TLS
-SSL_DOMAIN=yourdomain.com
+# ========================================
+# GPU Configuration
+# ========================================
+CUDA_VISIBLE_DEVICES=0
+GPU_MEMORY_THRESHOLD_MB=10000
+
+# ========================================
+# SSL/TLS Configuration
+# ========================================
+DOMAIN_NAME=yourdomain.com
 SSL_EMAIL=admin@yourdomain.com
 
-# Environment
-ENVIRONMENT=production
+# ========================================
+# Backup Configuration
+# ========================================
+BACKUP_RETENTION_DAYS=7
 
-# GPU
-CUDA_VISIBLE_DEVICES=0
+# ========================================
+# Frontend Configuration
+# ========================================
+# 本番環境のAPIエンドポイントを指定
+# 例: https://yourdomain.com または https://api.yourdomain.com
+VITE_API_URL=https://yourdomain.com
+
+# ========================================
+# Proxy Configuration (Optional)
+# ========================================
+# 企業プロキシ環境の場合は、以下のコメントを外して設定
+# HTTP_PROXY=http://proxy.example.com:8080
+# HTTPS_PROXY=http://proxy.example.com:8080
+# NO_PROXY=localhost,127.0.0.1,postgres,redis,backend,celery-worker
+
+# ========================================
+# Application Settings
+# ========================================
+ENVIRONMENT=production
+DEBUG=false
+LOG_LEVEL=INFO
 ```
 
 **重要**: `yourdomain.com`を実際のドメイン名に置き換えてください!
@@ -435,14 +541,39 @@ chmod 755 data backup logs
 
 ### 5. 本番用フロントエンドのビルド
 
-```bash
-cd frontend
-npm install
-npm run build
-cd ..
+本番環境用のフロントエンドをビルドします。VITE_API_URLは`.env`ファイルから自動的に読み込まれます。
 
-# ビルド出力(dist/)はnginxコンテナにコピーされます
+#### 自動ビルドスクリプトの使用（推奨）
+
+```bash
+# ビルドスクリプトに実行権限を付与
+chmod +x scripts/build-frontend.sh
+
+# ビルドスクリプトを実行
+./scripts/build-frontend.sh
 ```
+
+このスクリプトは以下を自動的に実行します：
+1. `.env`ファイルから`VITE_API_URL`を読み込む
+2. フロントエンドのDockerイメージをビルド（VITE_API_URLをbuild引数として渡す）
+3. ビルド成果物を`./frontend/dist`に抽出
+
+ビルド出力（`./frontend/dist`）はnginxコンテナによって提供されます。
+
+#### 手動ビルド（オプション）
+
+```bash
+# フロントエンドのDockerイメージをビルド
+docker-compose -f docker-compose.prod.yml build frontend-build
+
+# ビルド成果物を抽出
+docker-compose -f docker-compose.prod.yml run --rm frontend-build \
+  sh -c "cp -r /usr/share/nginx/html/* /dist/"
+```
+
+**注意**:
+- ビルド前に`.env`ファイルに`VITE_API_URL`が正しく設定されている必要があります
+- プロキシ環境の場合は、`.env`ファイルでプロキシ設定も有効化してください
 
 ### 6. 本番サービスの起動
 

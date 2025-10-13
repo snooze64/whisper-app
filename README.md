@@ -152,6 +152,11 @@
 git clone https://github.com/snooze64/whisper-app.git
 cd whisper-app
 
+# 環境変数ファイルの作成
+cp .env.example .env
+# 必要に応じて.envを編集（プロキシ設定など）
+# 詳細は docs/setup-guide.md を参照
+
 # 開発用Dockerコンテナのビルドと起動
 docker-compose up -d --build
 
@@ -218,6 +223,18 @@ celery-worker:
 本番環境では `docker-compose.prod.yml` を使用します：
 
 ```bash
+# 環境変数ファイルの作成と編集
+cp .env.example .env
+nano .env  # 本番用の設定に変更
+# - データベース、Redis、LDAPの設定
+# - シークレットキーの生成
+# - ドメイン名とSSL設定
+# - プロキシ設定（必要な場合）
+# 詳細は docs/deployment-guide.md を参照
+
+# フロントエンドのビルド
+./scripts/build-frontend.sh
+
 # 本番用Dockerコンテナのビルドと起動
 docker-compose -f docker-compose.prod.yml up -d --build
 

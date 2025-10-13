@@ -15,19 +15,43 @@
 
 ## Docker Composeファイル
 
-このプロジェクトでは、CPU環境とGPU環境で別々のDocker Composeファイルを使用します:
+このプロジェクトでは、開発環境と本番環境（CPU/GPU）で別々のDocker Composeファイルを使用します:
 
-### `docker-compose.cpu.yml` (CPU環境/開発環境)
+### `docker-compose.dev.yml` (開発環境)
 
 **目的**: GPU要件なしのローカル開発環境
 
 **機能**:
-- CPUのみのfaster-whisper(またはモックモード)
+- CPU環境（GPU不要）
 - バックエンドとフロントエンドのホットリロード有効
+- ボリュームマウント（ローカルコードを直接マウント）
 - モック認証(LDAPが不要)
-- CPU用Dockerfile
+- CPU用Dockerfile（backend: Dockerfile.cpu, frontend: Dockerfile.dev）
+- Vite開発サーバー（npm run dev）
 - ポートマッピング: フロントエンド 5174、バックエンド 8001
 - HuggingFaceモデル用のモデルキャッシュボリューム
+
+**使用方法**:
+```bash
+docker-compose -f docker-compose.dev.yml up -d
+docker-compose -f docker-compose.dev.yml logs -f
+docker-compose -f docker-compose.dev.yml down
+```
+
+### `docker-compose.cpu.yml` (本番環境・CPU専用サーバー)
+
+**目的**: GPU非搭載サーバーでの本番デプロイ
+
+**機能**:
+- CPU環境専用（GPU不要）
+- 本番用ビルド（最適化済み静的ファイル）
+- Let's Encryptを使用したSSL/HTTPS
+- LDAP認証
+- 自動バックアップ
+- 自動ファイルクリーンアップ
+- リソース制限と監視
+- CPU用Dockerfile（backend/frontend: Dockerfile.cpu）
+- Nginxリバースプロキシ
 
 **使用方法**:
 ```bash
@@ -36,18 +60,19 @@ docker-compose -f docker-compose.cpu.yml logs -f
 docker-compose -f docker-compose.cpu.yml down
 ```
 
-### `docker-compose.gpu.yml` (GPU環境/本番環境)
+### `docker-compose.gpu.yml` (本番環境・GPUサーバー)
 
 **目的**: 完全なGPUサポートと最適化された設定による本番デプロイ
 
 **機能**:
 - GPUサポート(NVIDIA CUDA)
+- 本番用ビルド（最適化済み静的ファイル）
 - Let's Encryptを使用したSSL/HTTPS
 - LDAP認証
 - 自動バックアップ
 - 自動ファイルクリーンアップ
 - リソース制限と監視
-- GPU用Dockerfile
+- GPU用Dockerfile（backend/frontend: Dockerfile.gpu）
 - Nginxリバースプロキシ
 
 **使用方法**:
@@ -59,16 +84,18 @@ docker-compose -f docker-compose.gpu.yml down
 
 **主な違い**:
 
-| 機能 | CPU環境 (`docker-compose.cpu.yml`) | GPU環境 (`docker-compose.gpu.yml`) |
-|---------|-----------------------------------|----------------------------------------|
-| GPU | 不要(CPUモードのみ) | 必須(NVIDIA GPU) |
-| SSL/HTTPS | なし(HTTPのみ) | あり(Let's Encrypt使用) |
-| 認証 | モック認証有効 | LDAP認証 |
-| ホットリロード | あり | なし |
-| バックアップ | なし | 毎日自動バックアップ |
-| ファイルクリーンアップ | なし | 自動クリーンアップサービス |
-| リソース制限 | なし | あり(CPU/メモリ制限) |
-| 監視 | 基本 | 完全なログ + メトリクス |
+| 機能 | 開発環境 (`docker-compose.dev.yml`) | 本番環境・CPU (`docker-compose.cpu.yml`) | 本番環境・GPU (`docker-compose.gpu.yml`) |
+|---------|-----------------------------------|----------------------------------------|----------------------------------------|
+| GPU | 不要(CPUのみ) | 不要(CPUのみ) | 必須(NVIDIA GPU) |
+| ビルド | 開発ビルド | 本番ビルド | 本番ビルド |
+| SSL/HTTPS | なし(HTTPのみ) | あり(Let's Encrypt) | あり(Let's Encrypt) |
+| 認証 | モック認証有効 | LDAP認証 | LDAP認証 |
+| ホットリロード | あり | なし | なし |
+| ボリュームマウント | あり | なし | なし |
+| バックアップ | なし | 毎日自動バックアップ | 毎日自動バックアップ |
+| ファイルクリーンアップ | なし | 自動クリーンアップ | 自動クリーンアップ |
+| リソース制限 | なし | あり | あり |
+| 監視 | 基本 | 完全なログ + メトリクス | 完全なログ + メトリクス |
 
 ## 前提条件
 
@@ -175,7 +202,7 @@ docker-compose exec backend pip install -r requirements-transformers-cuda114.txt
 
 3. **環境変数の設定**:
 
-`docker-compose.cpu.yml`または`docker-compose.gpu.yml`、もしくは`.env`ファイルを編集:
+`docker-compose.dev.yml`、`docker-compose.cpu.yml`、または`docker-compose.gpu.yml`、もしくは`.env`ファイルを編集:
 ```yaml
 celery-worker:
   environment:
@@ -190,7 +217,7 @@ WHISPER_BACKEND=transformers
 4. **transformersのインストールを確認**:
 ```bash
 # transformersがインストールされているか確認
-docker-compose -f docker-compose.cpu.yml exec backend python -c "import transformers; print(transformers.__version__)"
+docker-compose -f docker-compose.dev.yml exec backend python -c "import transformers; print(transformers.__version__)"
 
 # 期待される出力: 4.35.2
 ```
@@ -198,7 +225,7 @@ docker-compose -f docker-compose.cpu.yml exec backend python -c "import transfor
 5. **transformersバックエンドのテスト**:
 ```bash
 # 簡単な文字起こしテストを実行
-docker-compose -f docker-compose.cpu.yml exec backend python -c "
+docker-compose -f docker-compose.dev.yml exec backend python -c "
 from app.tasks.whisper_transformers import WhisperTranscriberTransformers
 transcriber = WhisperTranscriberTransformers(model_name='tiny', device='cpu', torch_dtype='float32')
 print('✅ Transformers backend loaded successfully')
@@ -344,32 +371,32 @@ LOG_LEVEL=DEBUG
 
 ```bash
 # すべてのサービスをビルドして起動
-docker-compose -f docker-compose.cpu.yml up -d --build
+docker-compose -f docker-compose.dev.yml up -d --build
 
 # ログの表示
-docker-compose -f docker-compose.cpu.yml logs -f
+docker-compose -f docker-compose.dev.yml logs -f
 
 # サービスステータスの確認
-docker-compose -f docker-compose.cpu.yml ps
+docker-compose -f docker-compose.dev.yml ps
 ```
 
 ### 4. データベースの初期化
 
 ```bash
 # マイグレーションの実行
-docker-compose -f docker-compose.cpu.yml exec backend alembic upgrade head
+docker-compose -f docker-compose.dev.yml exec backend alembic upgrade head
 
 # テーブルが作成されたことを確認
-docker-compose -f docker-compose.cpu.yml exec postgres psql -U whisper_dev -d whisper_dev -c "\dt"
+docker-compose -f docker-compose.dev.yml exec postgres psql -U whisper_dev -d whisper_dev -c "\dt"
 ```
 
 ### 5. サービスへのアクセス
 
-- **フロントエンド**: http://localhost:3000
-- **バックエンドAPI**: http://localhost:8000
-- **APIドキュメント**: http://localhost:8000/docs
-- **PostgreSQL**: localhost:5432
-- **Redis**: localhost:6379
+- **フロントエンド**: http://localhost:5174
+- **バックエンドAPI**: http://localhost:8001
+- **APIドキュメント**: http://localhost:8001/api/docs
+- **PostgreSQL**: localhost:5434
+- **Redis**: localhost:6380
 
 ## 本番環境のセットアップ
 
@@ -627,7 +654,12 @@ LDAPサーバーがDockerネットワークからアクセス可能であるこ�
 # ホストマシンから
 ldapsearch -x -H ldap://your-ldap-server:389 -D "cn=admin,dc=example,dc=com" -w password -b "dc=example,dc=com"
 
-# Dockerコンテナから
+# Dockerコンテナから（開発環境）
+docker-compose -f docker-compose.dev.yml exec backend ldapsearch -x -H ldap://your-ldap-server:389 -D "cn=admin,dc=example,dc=com" -w password -b "dc=example,dc=com"
+
+# Dockerコンテナから（本番環境）
+docker-compose -f docker-compose.gpu.yml exec backend ldapsearch -x -H ldap://your-ldap-server:389 -D "cn=admin,dc=example,dc=com" -w password -b "dc=example,dc=com"
+# または CPU専用本番環境
 docker-compose -f docker-compose.cpu.yml exec backend ldapsearch -x -H ldap://your-ldap-server:389 -D "cn=admin,dc=example,dc=com" -w password -b "dc=example,dc=com"
 ```
 
@@ -674,32 +706,43 @@ docker-compose -f docker-compose.gpu.yml exec backup /scripts/backup.sh
 
 ```bash
 # すべてのマイグレーションを適用
-docker-compose -f docker-compose.cpu.yml exec backend alembic upgrade head
+docker-compose -f docker-compose.dev.yml exec backend alembic upgrade head
 
 # マイグレーション状態の確認
-docker-compose -f docker-compose.cpu.yml exec backend alembic current
+docker-compose -f docker-compose.dev.yml exec backend alembic current
 
 # マイグレーション履歴の表示
-docker-compose -f docker-compose.cpu.yml exec backend alembic history
+docker-compose -f docker-compose.dev.yml exec backend alembic history
 ```
 
 ### 本番データベース
 
 #### 初期セットアップ
 
+**GPUサーバー**:
 ```bash
 # すべてのマイグレーションを適用
 docker-compose -f docker-compose.gpu.yml exec backend alembic upgrade head
+```
+
+**CPU専用サーバー**:
+```bash
+# すべてのマイグレーションを適用
+docker-compose -f docker-compose.cpu.yml exec backend alembic upgrade head
 ```
 
 #### バックアップと復元
 
 **バックアップの作成**:
 ```bash
+# GPUサーバー
 docker-compose -f docker-compose.gpu.yml exec backup /scripts/backup.sh
+
+# CPU専用サーバー
+docker-compose -f docker-compose.cpu.yml exec backup /scripts/backup.sh
 ```
 
-**バックアップからの復元**:
+**バックアップからの復元** (GPUサーバーの例):
 ```bash
 # サービスの停止
 docker-compose -f docker-compose.gpu.yml stop backend celery-worker
@@ -712,10 +755,13 @@ gunzip -c backup/whisper_backup_YYYYMMDD_HHMMSS.sql.gz | \
 docker-compose -f docker-compose.gpu.yml start backend celery-worker
 ```
 
+CPU専用サーバーの場合は `docker-compose.gpu.yml` を `docker-compose.cpu.yml` に置き換えてください。
+
 #### データベースマイグレーション
 
 アプリケーションを更新する際:
 
+**GPUサーバー**:
 ```bash
 # 最新コードの取得
 git pull origin main
@@ -727,13 +773,25 @@ docker-compose -f docker-compose.gpu.yml exec backend alembic upgrade head
 docker-compose -f docker-compose.gpu.yml restart backend celery-worker
 ```
 
+**CPU専用サーバー**:
+```bash
+# 最新コードの取得
+git pull origin main
+
+# 新しいマイグレーションの適用
+docker-compose -f docker-compose.cpu.yml exec backend alembic upgrade head
+
+# サービスの再起動
+docker-compose -f docker-compose.cpu.yml restart backend celery-worker
+```
+
 ## 動作確認
 
 ### 開発環境
 
 1. **すべてのサービスが実行中か確認**:
 ```bash
-docker-compose -f docker-compose.cpu.yml ps
+docker-compose -f docker-compose.dev.yml ps
 
 # 期待される出力:
 # NAME                   STATUS
@@ -760,14 +818,14 @@ curl http://localhost:5174
 
 4. **データベースのテスト**:
 ```bash
-docker-compose -f docker-compose.cpu.yml exec postgres psql -U whisper_dev -d whisper_dev -c "SELECT 1;"
+docker-compose -f docker-compose.dev.yml exec postgres psql -U whisper_dev -d whisper_dev -c "SELECT 1;"
 
 # 期待される結果: 1行が返される
 ```
 
 5. **Redisのテスト**:
 ```bash
-docker-compose -f docker-compose.cpu.yml exec redis redis-cli ping
+docker-compose -f docker-compose.dev.yml exec redis redis-cli ping
 
 # 期待される結果: PONG
 ```
@@ -867,23 +925,49 @@ docker-compose -f docker-compose.gpu.yml exec postgres psql -U whisper_prod -d w
 ### クイックフィックス
 
 **サービスが起動しない**:
+
+開発環境:
 ```bash
 # ログの確認
-docker-compose -f docker-compose.cpu.yml logs
+docker-compose -f docker-compose.dev.yml logs
 
 # コンテナの再ビルド
+docker-compose -f docker-compose.dev.yml down
+docker-compose -f docker-compose.dev.yml up -d --build
+```
+
+本番環境:
+```bash
+# GPUサーバー
+docker-compose -f docker-compose.gpu.yml logs
+docker-compose -f docker-compose.gpu.yml down
+docker-compose -f docker-compose.gpu.yml up -d --build
+
+# CPU専用サーバー
+docker-compose -f docker-compose.cpu.yml logs
 docker-compose -f docker-compose.cpu.yml down
 docker-compose -f docker-compose.cpu.yml up -d --build
 ```
 
 **データベース接続エラー**:
+
+開発環境:
 ```bash
 # データベースが実行中か確認
-docker-compose -f docker-compose.cpu.yml exec postgres pg_isready -U whisper_dev
+docker-compose -f docker-compose.dev.yml exec postgres pg_isready -U whisper_dev
 
 # データベースのリセット(注意: データが破壊されます!)
-docker-compose -f docker-compose.cpu.yml down -v
-docker-compose -f docker-compose.cpu.yml up -d
+docker-compose -f docker-compose.dev.yml down -v
+docker-compose -f docker-compose.dev.yml up -d
+```
+
+本番環境:
+```bash
+# GPUサーバー
+docker-compose -f docker-compose.gpu.yml exec postgres pg_isready -U whisper_prod
+
+# CPU専用サーバー
+docker-compose -f docker-compose.cpu.yml exec postgres pg_isready -U whisper_prod
 ```
 
 **GPUが検出されない**:

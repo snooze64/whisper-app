@@ -1,42 +1,70 @@
 version: '3.8'
 
+# CPU Production Docker Compose Configuration
+# This file is for production deployment on CPU-only servers without GPU
+
 services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: whisper-postgres
+    container_name: whisper-postgres-prod
+    restart: always
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: whisper
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_MAX_CONNECTIONS: 100
     volumes:
       - postgres-data:/var/lib/postgresql/data
-    ports:
-      - "5434:5432"
+      - postgres-backup:/backup
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d whisper"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
     networks:
       - whisper-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  # Redis for Celery
+  # Redis for Celery and Cache
   redis:
     image: redis:7-alpine
-    container_name: whisper-redis
-    command: redis-server --appendonly yes
+    container_name: whisper-redis-prod
+    restart: always
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
     volumes:
       - redis-data:/data
-    ports:
-      - "6380:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
     networks:
       - whisper-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   # FastAPI Backend
   backend:
@@ -44,36 +72,36 @@ services:
       context: ./backend
       dockerfile: Dockerfile.cpu
       args:
+        - PYTHON_VERSION=3.11
         - HTTP_PROXY=${HTTP_PROXY:-}
         - HTTPS_PROXY=${HTTPS_PROXY:-}
         - NO_PROXY=${NO_PROXY:-}
-    container_name: whisper-backend
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    container_name: whisper-backend-prod
+    restart: always
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
     volumes:
-      - ./backend:/app
       - upload-data:/data/uploads
       - result-data:/data/results
       - temp-data:/data/temp
-      - model-cache:/root/.cache/huggingface
-    ports:
-      - "8001:8000"
+      - logs:/var/log/whisper
     environment:
-      - DATABASE_URL=${DATABASE_URL:-postgresql://user:password@postgres:5432/whisper}
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
-      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
-      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=${ALGORITHM:-HS256}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-15}
       - REFRESH_TOKEN_EXPIRE_DAYS=${REFRESH_TOKEN_EXPIRE_DAYS:-7}
-      - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS:-["http://localhost:3000","http://localhost:5173","http://localhost:5174","http://localhost:8001"]}
-      - LDAP_SERVER=${LDAP_SERVER:-ldap://ldap-server:389}
-      - LDAP_BASE_DN=${LDAP_BASE_DN:-dc=example,dc=com}
-      - LDAP_USER_DN_TEMPLATE=${LDAP_USER_DN_TEMPLATE:-uid={username},ou=users,dc=example,dc=com}
-      - USE_MOCK_AUTH=${USE_MOCK_AUTH:-true}
+      - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS}
+      - MAX_FILE_SIZE=${MAX_FILE_SIZE:-1073741824}
+      - FILE_RETENTION_HOURS=${FILE_RETENTION_HOURS:-24}
+      - LDAP_SERVER=${LDAP_SERVER}
+      - LDAP_BASE_DN=${LDAP_BASE_DN}
+      - LDAP_USER_DN_TEMPLATE=${LDAP_USER_DN_TEMPLATE}
+      - USE_MOCK_AUTH=${USE_MOCK_AUTH:-false}
       - DEFAULT_WHISPER_MODEL=${DEFAULT_WHISPER_MODEL:-large-v3-turbo}
       - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - GPU_MEMORY_THRESHOLD_MB=${GPU_MEMORY_THRESHOLD_MB:-10000}
       - HTTP_PROXY=${HTTP_PROXY:-}
       - HTTPS_PROXY=${HTTPS_PROXY:-}
       - NO_PROXY=${NO_PROXY:-}
@@ -85,36 +113,55 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     networks:
       - whisper-network
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 4G
+        reservations:
+          cpus: '2'
+          memory: 2G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
 
-  # Celery Worker (Development - CPU)
+  # Celery Worker (CPU only)
   celery-worker:
     build:
       context: ./backend
       dockerfile: Dockerfile.cpu
       args:
+        - PYTHON_VERSION=3.11
         - HTTP_PROXY=${HTTP_PROXY:-}
         - HTTPS_PROXY=${HTTPS_PROXY:-}
         - NO_PROXY=${NO_PROXY:-}
-    container_name: whisper-celery-worker
-    command: celery -A app.celery_app worker --loglevel=info --concurrency=1 --queues transcription
+    container_name: whisper-celery-worker-prod
+    restart: always
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=2 --max-tasks-per-child=10
     volumes:
-      - ./backend:/app
       - upload-data:/data/uploads
       - result-data:/data/results
       - temp-data:/data/temp
-      - model-cache:/root/.cache/huggingface
+      - model-cache:/root/.cache/whisper
+      - logs:/var/log/whisper
     environment:
-      - DATABASE_URL=${DATABASE_URL:-postgresql://user:password@postgres:5432/whisper}
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
-      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
       - DEFAULT_WHISPER_MODEL=${DEFAULT_WHISPER_MODEL:-large-v3-turbo}
       - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - GPU_MEMORY_THRESHOLD_MB=${GPU_MEMORY_THRESHOLD_MB:-10000}
-      # - WHISPER_BACKEND=transformers  # Uncomment for CUDA 11.4 environments
-      # GPU configuration removed for development (CPU only)
+      - MAX_FILE_SIZE=${MAX_FILE_SIZE:-1073741824}
       - HTTP_PROXY=${HTTP_PROXY:-}
       - HTTPS_PROXY=${HTTPS_PROXY:-}
       - NO_PROXY=${NO_PROXY:-}
@@ -126,9 +173,26 @@ services:
       - postgres
     networks:
       - whisper-network
+    deploy:
+      resources:
+        limits:
+          cpus: '8'
+          memory: 16G
+        reservations:
+          cpus: '4'
+          memory: 8G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
 
-  # Frontend Development Server (Vite)
-  frontend-dev:
+  # Frontend Build Service (run before deploying)
+  # Usage:
+  #   1. Build: docker-compose -f docker-compose.prod.yml build frontend-build
+  #   2. Extract dist: docker-compose -f docker-compose.prod.yml run --rm frontend-build sh -c "cp -r /usr/share/nginx/html/* /dist/"
+  # Or use the build script: ./scripts/build-frontend.sh
+  frontend-build:
     build:
       context: ./frontend
       dockerfile: Dockerfile.cpu
@@ -136,51 +200,161 @@ services:
         - HTTP_PROXY=${HTTP_PROXY:-}
         - HTTPS_PROXY=${HTTPS_PROXY:-}
         - NO_PROXY=${NO_PROXY:-}
-    container_name: whisper-frontend-dev
-    command: npm run dev
+        - VITE_API_URL=${VITE_API_URL}
+    container_name: whisper-frontend-build
+    image: whisper-frontend:latest
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    ports:
-      - "5174:5173"
-    environment:
-      - VITE_API_URL=${VITE_API_URL:-http://localhost:8001}
-      - HTTP_PROXY=${HTTP_PROXY:-}
-      - HTTPS_PROXY=${HTTPS_PROXY:-}
-      - NO_PROXY=${NO_PROXY:-}
-      - http_proxy=${HTTP_PROXY:-}
-      - https_proxy=${HTTPS_PROXY:-}
-      - no_proxy=${NO_PROXY:-}
-    depends_on:
-      - backend
+      - ./frontend/dist:/dist
+    profiles:
+      - build
     networks:
       - whisper-network
 
-  # Nginx Reverse Proxy (Production)
+  # Nginx Reverse Proxy with SSL
   nginx:
     image: nginx:alpine
-    container_name: whisper-nginx
+    container_name: whisper-nginx-prod
+    restart: always
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
       - ./frontend/dist:/usr/share/nginx/html:ro
+      - nginx-cache:/var/cache/nginx
+      - nginx-logs:/var/log/nginx
+      - certbot-webroot:/var/www/certbot:ro
+      - certbot-certs:/etc/letsencrypt:ro
     ports:
       - "80:80"
       - "443:443"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - whisper-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # Certbot for Let's Encrypt SSL certificates
+  certbot:
+    image: certbot/certbot:latest
+    container_name: whisper-certbot
+    volumes:
+      - certbot-webroot:/var/www/certbot
+      - certbot-certs:/etc/letsencrypt
+      - certbot-logs:/var/log/letsencrypt
+    command: certonly --webroot --webroot-path=/var/www/certbot --email ${SSL_EMAIL} --agree-tos --no-eff-email -d ${DOMAIN_NAME}
+    depends_on:
+      - nginx
     networks:
       - whisper-network
     profiles:
-      - production
+      - ssl-init
+
+  # Cron job for automatic file cleanup
+  file-cleanup:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.cpu
+    container_name: whisper-file-cleanup
+    restart: always
+    command: python -m app.scripts.cleanup_files
+    volumes:
+      - upload-data:/data/uploads
+      - result-data:/data/results
+      - temp-data:/data/temp
+      - logs:/var/log/whisper
+    environment:
+      - FILE_RETENTION_HOURS=${FILE_RETENTION_HOURS:-24}
+    networks:
+      - whisper-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Database backup service
+  postgres-backup:
+    image: postgres:15-alpine
+    container_name: whisper-postgres-backup
+    restart: always
+    volumes:
+      - postgres-backup:/backup
+      - ./scripts/backup.sh:/backup.sh:ro
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - BACKUP_RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-7}
+    command: >
+      sh -c 'while true; do
+        /backup.sh;
+        sleep 86400;
+      done'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - whisper-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   postgres-data:
+    driver: local
+  postgres-backup:
+    driver: local
   redis-data:
+    driver: local
   upload-data:
+    driver: local
   result-data:
+    driver: local
   temp-data:
+    driver: local
   model-cache:
+    driver: local
+  logs:
+    driver: local
+  nginx-cache:
+    driver: local
+  nginx-logs:
+    driver: local
+  certbot-webroot:
+    driver: local
+  certbot-certs:
+    driver: local
+  certbot-logs:
+    driver: local
 
 networks:
   whisper-network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

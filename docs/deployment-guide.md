@@ -2,6 +2,12 @@
 
 このガイドでは、Whisper Appを本番環境にデプロイする際のベストプラクティス、監視、メンテナンス、更新について説明します。
 
+**重要**: 本番環境には2つのデプロイオプションがあります：
+- **`docker-compose.gpu.yml`**: GPU搭載サーバー用（推奨・高速処理）
+- **`docker-compose.cpu.yml`**: CPU専用サーバー用（GPU非搭載環境）
+
+このガイドでは主にGPU環境（`docker-compose.gpu.yml`）を例として説明しますが、CPU専用サーバーの場合は `docker-compose.gpu.yml` を `docker-compose.cpu.yml` に置き換えてください。
+
 ## 目次
 
 1. [デプロイ前チェックリスト](#pre-deployment-checklist)
@@ -18,6 +24,7 @@
 
 ### インフラストラクチャ要件
 
+**GPU環境（docker-compose.gpu.yml）**:
 - [ ] **サーバーの準備完了** 最小スペック:
   - 8コア以上のCPU
   - 32GB以上のRAM
@@ -25,6 +32,17 @@
   - 20-30GB VRAMのNVIDIA GPU
 - [ ] **NVIDIAドライバのインストール完了** (バージョン 525.60.13以降)
 - [ ] **NVIDIA Container Toolkit**のインストールと設定完了
+- [ ] **Docker** (24.0以降) と Docker Compose (2.20以降) のインストール完了
+- [ ] **ドメイン名**の登録とDNS設定完了
+- [ ] **ファイアウォール**の設定完了 (ポート80, 443を開放)
+- [ ] **SSL証明書**の準備完了 (Let's Encryptまたは商用証明書)
+
+**CPU専用環境（docker-compose.cpu.yml）**:
+- [ ] **サーバーの準備完了** 最小スペック:
+  - 8コア以上のCPU（16コア推奨）
+  - 32GB以上のRAM（処理速度が遅いためキューが増える可能性）
+  - 100GB以上のディスク容量
+  - GPU不要
 - [ ] **Docker** (24.0以降) と Docker Compose (2.20以降) のインストール完了
 - [ ] **ドメイン名**の登録とDNS設定完了
 - [ ] **ファイアウォール**の設定完了 (ポート80, 443を開放)
@@ -208,6 +226,7 @@ chmod 600 certbot/conf/live/yourdomain.com/*.pem
 
 ### ステップ6: サービスのデプロイ
 
+**GPU環境**:
 ```bash
 # すべてのサービスをビルドして起動
 docker-compose -f docker-compose.gpu.yml up -d --build
@@ -219,8 +238,21 @@ docker-compose -f docker-compose.gpu.yml logs -f
 docker-compose -f docker-compose.gpu.yml ps
 ```
 
+**CPU専用環境**:
+```bash
+# すべてのサービスをビルドして起動
+docker-compose -f docker-compose.cpu.yml up -d --build
+
+# 起動状況の監視
+docker-compose -f docker-compose.cpu.yml logs -f
+
+# サービスがヘルシーになるまで待機
+docker-compose -f docker-compose.cpu.yml ps
+```
+
 ### ステップ7: データベースの初期化
 
+**GPU環境**:
 ```bash
 # マイグレーションの適用
 docker-compose -f docker-compose.gpu.yml exec backend alembic upgrade head
@@ -232,8 +264,21 @@ docker-compose -f docker-compose.gpu.yml exec postgres psql -U whisper_prod -d w
 docker-compose -f docker-compose.gpu.yml exec backend alembic current
 ```
 
+**CPU専用環境**:
+```bash
+# マイグレーションの適用
+docker-compose -f docker-compose.cpu.yml exec backend alembic upgrade head
+
+# テーブルが作成されたことを確認
+docker-compose -f docker-compose.cpu.yml exec postgres psql -U whisper_prod -d whisper_prod -c "\dt"
+
+# マイグレーションステータスの確認
+docker-compose -f docker-compose.cpu.yml exec backend alembic current
+```
+
 ### ステップ8: 管理者ユーザーの作成
 
+**GPU環境**:
 ```bash
 # データベースへのアクセス
 docker-compose -f docker-compose.gpu.yml exec postgres psql -U whisper_prod -d whisper_prod
@@ -248,6 +293,8 @@ SELECT id, username, email, is_admin FROM users;
 # 終了
 \q
 ```
+
+**CPU専用環境**: 上記の `docker-compose.gpu.yml` を `docker-compose.cpu.yml` に置き換えてください。
 
 ### ステップ9: デプロイの確認
 
@@ -351,6 +398,8 @@ cronに追加:
 ### システムリソース監視
 
 #### GPU監視
+
+**注意**: この監視はGPU環境（`docker-compose.gpu.yml`）でのみ適用されます。CPU専用環境では不要です。
 
 ```bash
 # GPU使用状況の監視

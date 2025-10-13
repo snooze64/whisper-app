@@ -43,6 +43,10 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.dev
+      args:
+        - HTTP_PROXY=${HTTP_PROXY:-}
+        - HTTPS_PROXY=${HTTPS_PROXY:-}
+        - NO_PROXY=${NO_PROXY:-}
     container_name: whisper-backend
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
@@ -60,6 +64,12 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - BACKEND_CORS_ORIGINS=["http://localhost:3000","http://localhost:5173","http://localhost:5174","http://localhost:8001"]
       - USE_MOCK_AUTH=true
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - NO_PROXY=${NO_PROXY:-}
+      - http_proxy=${HTTP_PROXY:-}
+      - https_proxy=${HTTPS_PROXY:-}
+      - no_proxy=${NO_PROXY:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -73,6 +83,10 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.dev
+      args:
+        - HTTP_PROXY=${HTTP_PROXY:-}
+        - HTTPS_PROXY=${HTTPS_PROXY:-}
+        - NO_PROXY=${NO_PROXY:-}
     container_name: whisper-celery-worker
     command: celery -A app.celery_app worker --loglevel=info --concurrency=1 --queues transcription
     volumes:
@@ -88,6 +102,12 @@ services:
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       # - WHISPER_BACKEND=transformers  # Uncomment for CUDA 11.4 environments
       # GPU configuration removed for development (CPU only)
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - NO_PROXY=${NO_PROXY:-}
+      - http_proxy=${HTTP_PROXY:-}
+      - https_proxy=${HTTPS_PROXY:-}
+      - no_proxy=${NO_PROXY:-}
     depends_on:
       - redis
       - postgres
@@ -99,6 +119,10 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
+      args:
+        - HTTP_PROXY=${HTTP_PROXY:-}
+        - HTTPS_PROXY=${HTTPS_PROXY:-}
+        - NO_PROXY=${NO_PROXY:-}
     container_name: whisper-frontend-dev
     command: npm run dev
     volumes:
@@ -108,6 +132,12 @@ services:
       - "5174:5173"
     environment:
       - VITE_API_URL=http://localhost:8001
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - NO_PROXY=${NO_PROXY:-}
+      - http_proxy=${HTTP_PROXY:-}
+      - https_proxy=${HTTPS_PROXY:-}
+      - no_proxy=${NO_PROXY:-}
     depends_on:
       - backend
     networks:

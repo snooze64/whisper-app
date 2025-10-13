@@ -1,886 +1,886 @@
 # Release Notes - Whisper App v1.0.0
 
-**Release Date**: 2025-10-13
-**Version**: 1.0.0 (Initial Release)
-**Status**: Production Ready
+**リリース日**: 2025-10-13
+**バージョン**: 1.0.0 (初回リリース)
+**ステータス**: 本番環境対応
 
 ---
 
-## Table of Contents
+## 目次
 
-1. [Overview](#overview)
-2. [What's New](#whats-new)
-3. [Feature Highlights](#feature-highlights)
-4. [Technical Stack](#technical-stack)
-5. [System Requirements](#system-requirements)
-6. [Installation and Deployment](#installation-and-deployment)
-7. [Performance Metrics](#performance-metrics)
-8. [Security](#security)
-9. [Known Issues and Limitations](#known-issues-and-limitations)
-10. [Upgrade Instructions](#upgrade-instructions)
-11. [Breaking Changes](#breaking-changes)
-12. [Bug Fixes](#bug-fixes)
-13. [Documentation](#documentation)
-14. [Future Roadmap](#future-roadmap)
-15. [Contributors](#contributors)
-
----
-
-## Overview
-
-Whisper App v1.0.0 is an on-premises audio/video transcription system designed for enterprise use. This initial release provides production-ready functionality for automated speech recognition (ASR) with speaker diarization, supporting multiple languages and file formats.
-
-### Key Capabilities
-
-- **High-Accuracy Transcription**: Powered by OpenAI Whisper (Large V3, Large V3 Turbo, Tiny models)
-- **Speaker Diarization**: Automatic speaker identification using Resemblyzer
-- **Multi-Language Support**: Japanese, English, Chinese, Korean, and auto-detection
-- **Subtitle Generation**: Export to SRT and WebVTT formats
-- **User Management**: LDAP authentication with JWT-based authorization
-- **Admin Dashboard**: Real-time system monitoring and statistics
-- **GPU Acceleration**: CUDA-optimized processing for fast transcription
+1. [概要](#概要)
+2. [新機能](#新機能)
+3. [機能ハイライト](#機能ハイライト)
+4. [技術スタック](#技術スタック)
+5. [システム要件](#システム要件)
+6. [インストールとデプロイ](#インストールとデプロイ)
+7. [パフォーマンス指標](#パフォーマンス指標)
+8. [セキュリティ](#セキュリティ)
+9. [既知の問題と制限事項](#既知の問題と制限事項)
+10. [アップグレード手順](#アップグレード手順)
+11. [破壊的変更](#破壊的変更)
+12. [バグ修正](#バグ修正)
+13. [ドキュメント](#ドキュメント)
+14. [今後のロードマップ](#今後のロードマップ)
+15. [貢献者](#貢献者)
 
 ---
 
-## What's New
+## 概要
 
-### Phase 1: Infrastructure Setup ✅
-**Completion Date**: 2025-10-13
+Whisper App v1.0.0は、企業向けに設計されたオンプレミス型の音声・動画文字起こしシステムです。この初回リリースでは、話者分離機能を備えた自動音声認識(ASR)の本番環境対応機能を提供し、複数の言語とファイル形式をサポートしています。
 
-- Docker-based multi-service architecture
-- FastAPI backend with async/await support
-- React frontend with TypeScript
-- PostgreSQL database with Alembic migrations
-- Redis for task queue management
-- Celery workers for asynchronous processing
-- Nginx reverse proxy with SSL/TLS support
+### 主な機能
 
-### Phase 2: Authentication and User Management ✅
-**Completion Date**: 2025-10-13
+- **高精度な文字起こし**: OpenAI Whisper (Large V3、Large V3 Turbo、Tinyモデル) によるパワフルな処理
+- **話者分離**: Resemblyzerを使用した自動話者識別
+- **多言語サポート**: 日本語、英語、中国語、韓国語、および自動検出
+- **字幕生成**: SRTおよびWebVTT形式へのエクスポート
+- **ユーザー管理**: LDAPベースの認証とJWTベースの認可
+- **管理ダッシュボード**: リアルタイムのシステム監視と統計情報
+- **GPU加速**: CUDA最適化処理による高速文字起こし
 
-- LDAP authentication integration
-- JWT token-based authorization (access + refresh tokens)
-- User roles: Admin and Regular User
-- Protected API endpoints with permission checks
-- Mock authentication system for development
-- Automatic token refresh mechanism
-- Login/logout functionality
+---
 
-### Phase 3: File Upload ✅
-**Completion Date**: 2025-10-13
+## 新機能
 
-- Drag-and-drop file upload interface
-- Click-to-upload file selection
-- File validation (format, size limits)
-- Support for audio formats: MP3, WAV, M4A, FLAC, OGG
-- Support for video formats: MP4, AVI, MOV, MKV
-- Maximum file size: 1GB
-- Task creation and tracking (UUID-based)
-- Real-time upload progress display
-- User-specific file isolation
+### Phase 1: インフラストラクチャのセットアップ ✅
+**完了日**: 2025-10-13
 
-### Phase 4: Whisper Transcription ✅
-**Completion Date**: 2025-10-13
+- Dockerベースのマルチサービスアーキテクチャ
+- FastAPIバックエンドのasync/awaitサポート
+- TypeScriptを使用したReactフロントエンド
+- Alembicマイグレーションを備えたPostgreSQLデータベース
+- タスクキュー管理用のRedis
+- 非同期処理用のCeleryワーカー
+- SSL/TLSサポートを備えたNginxリバースプロキシ
 
-- faster-whisper integration for GPU-accelerated processing
-- Support for all Whisper models:
-  - Tiny (fastest, ~1GB VRAM)
+### Phase 2: 認証とユーザー管理 ✅
+**完了日**: 2025-10-13
+
+- LDAP認証統合
+- JWTトークンベースの認可(アクセストークン + リフレッシュトークン)
+- ユーザーロール: 管理者と一般ユーザー
+- 権限チェック機能を備えた保護されたAPIエンドポイント
+- 開発用モック認証システム
+- 自動トークンリフレッシュメカニズム
+- ログイン/ログアウト機能
+
+### Phase 3: ファイルアップロード ✅
+**完了日**: 2025-10-13
+
+- ドラッグ&ドロップファイルアップロードインターフェース
+- クリックアップロードファイル選択
+- ファイル検証(形式、サイズ制限)
+- 音声形式のサポート: MP3、WAV、M4A、FLAC、OGG
+- 動画形式のサポート: MP4、AVI、MOV、MKV
+- 最大ファイルサイズ: 1GB
+- タスクの作成と追跡(UUIDベース)
+- リアルタイムのアップロード進捗表示
+- ユーザー固有のファイル分離
+
+### Phase 4: Whisper文字起こし ✅
+**完了日**: 2025-10-13
+
+- GPU加速処理のためのfaster-whisper統合
+- すべてのWhisperモデルのサポート:
+  - Tiny (最速、VRAM約1GB)
   - Base
   - Small
   - Medium
-  - Large V3 (highest accuracy, ~12GB VRAM)
-  - Large V3 Turbo (balanced, ~10GB VRAM)
-- Multi-language transcription (100+ languages)
-- Celery task chain: audio extraction → transcription → result saving
-- FFmpeg audio extraction (16kHz mono WAV)
-- GPU memory monitoring with pynvml
-- Progress tracking (10% → 20% → 30% → 50% → 80% → 100%)
-- Automatic retry with exponential backoff
-- Error handling and graceful degradation
-- Mock transcription for development (CPU-only environments)
+  - Large V3 (最高精度、VRAM約12GB)
+  - Large V3 Turbo (バランス型、VRAM約10GB)
+- 多言語文字起こし(100以上の言語)
+- Celeryタスクチェーン: 音声抽出 → 文字起こし → 結果保存
+- FFmpeg音声抽出(16kHz モノラル WAV)
+- pynvmlを使用したGPUメモリ監視
+- 進捗追跡(10% → 20% → 30% → 50% → 80% → 100%)
+- 指数バックオフを使用した自動リトライ
+- エラーハンドリングとグレースフルデグラデーション
+- 開発用モック文字起こし(CPUのみの環境)
 
-### Phase 5: Speaker Diarization ✅
-**Completion Date**: 2025-10-13
+### Phase 5: 話者分離 ✅
+**完了日**: 2025-10-13
 
-- Resemblyzer integration for speaker identification
-- AgglomerativeClustering for speaker grouping
-- User-specified speaker count (1-10 speakers)
-- Automatic speaker count detection
-- Speaker labels in transcription segments (speaker_id, speaker_label, confidence)
-- Extended Celery task chain: extract → transcribe → diarize → save
-- Progress tracking extended (85% → 90%)
-- Graceful fallback if Resemblyzer unavailable
-- Mock diarization for development
+- 話者識別のためのResemblyzer統合
+- 話者グループ化のためのAgglomerativeClustering
+- ユーザー指定の話者数(1-10人)
+- 自動話者数検出
+- 文字起こしセグメント内の話者ラベル(speaker_id、speaker_label、confidence)
+- 拡張されたCeleryタスクチェーン: 抽出 → 文字起こし → 話者分離 → 保存
+- 進捗追跡の拡張(85% → 90%)
+- Resemblyzerが利用できない場合のグレースフルフォールバック
+- 開発用モック話者分離
 
-### Phase 6: Result Display and Editing ✅
-**Completion Date**: 2025-10-13
+### Phase 6: 結果表示と編集 ✅
+**完了日**: 2025-10-13
 
-- Transcription result viewer with full text display
-- Segment-by-segment display with timestamps (HH:MM:SS.mmm)
-- Inline editing functionality:
-  - Text content editing
-  - Timestamp adjustment (start/end times)
-  - Speaker label customization
-- Real-time UI updates after edits
-- Automatic word count recalculation
-- SRT subtitle file generation
-- WebVTT subtitle file generation
-- Subtitle download API with dynamic format selection
-- Permission-based editing (users can only edit own tasks, admins can edit all)
+- 全文表示付き文字起こし結果ビューア
+- タイムスタンプ付きセグメント別表示(HH:MM:SS.mmm)
+- インライン編集機能:
+  - テキストコンテンツの編集
+  - タイムスタンプ調整(開始/終了時刻)
+  - 話者ラベルのカスタマイズ
+- 編集後のリアルタイムUI更新
+- 自動文字数再計算
+- SRT字幕ファイル生成
+- WebVTT字幕ファイル生成
+- 動的形式選択による字幕ダウンロードAPI
+- 権限ベースの編集(ユーザーは自分のタスクのみ編集可能、管理者はすべて編集可能)
 
-### Phase 7: Processing History and Admin Dashboard ✅
-**Completion Date**: 2025-10-13
+### Phase 7: 処理履歴と管理ダッシュボード ✅
+**完了日**: 2025-10-13
 
-- Processing history tracking in `processing_history` table
-- User statistics:
-  - Total tasks processed
-  - Success rate
-  - Average processing time
-  - Total file size
-- Processing history list with filtering and pagination
-- Admin dashboard with:
-  - System status (GPU, Celery workers, task queue)
-  - Overall statistics (total users, tasks, avg time)
-  - Model usage statistics
-  - File format usage statistics
-  - Hourly processing chart (Chart.js)
-- Auto-refresh every 30 seconds
-- Manual refresh button
-- Permission-based access (admins only)
+- `processing_history`テーブルでの処理履歴追跡
+- ユーザー統計:
+  - 処理されたタスクの合計
+  - 成功率
+  - 平均処理時間
+  - 合計ファイルサイズ
+- フィルタリングとページネーション機能付き処理履歴リスト
+- 管理ダッシュボード:
+  - システムステータス(GPU、Celeryワーカー、タスクキュー)
+  - 全体統計(ユーザー総数、タスク、平均時間)
+  - モデル使用状況統計
+  - ファイル形式使用状況統計
+  - 時間別処理チャート(Chart.js)
+- 30秒ごとの自動リフレッシュ
+- 手動リフレッシュボタン
+- 権限ベースのアクセス(管理者のみ)
 
-### Phase 8: Testing and Optimization ✅
-**Completion Date**: 2025-10-13
+### Phase 8: テストと最適化 ✅
+**完了日**: 2025-10-13
 
-#### Testing
-- **Backend Unit Tests**: 57/57 tests passed (100% success rate)
-  - Authentication, tasks, transcription, history, admin APIs
-  - pytest with async support
-  - Test database isolation
-- **Frontend Unit Tests**: 30/30 tests passed (100% success rate)
-  - UI components (Button)
-  - Utilities (cn function)
-  - State management (authStore)
-  - API client (axios)
+#### テスト
+- **バックエンド単体テスト**: 57/57テスト合格(100%成功率)
+  - 認証、タスク、文字起こし、履歴、管理API
+  - 非同期サポート付きpytest
+  - テストデータベース分離
+- **フロントエンド単体テスト**: 30/30テスト合格(100%成功率)
+  - UIコンポーネント(Button)
+  - ユーティリティ(cn関数)
+  - 状態管理(authStore)
+  - APIクライアント(axios)
   - Vitest + Testing Library
-- **Integration Tests**: Test files created (task workflow, concurrent processing)
+- **統合テスト**: テストファイル作成完了(タスクワークフロー、並行処理)
 
-#### Optimization
-- **Database Query Optimization**:
-  - Composite indexes: `(user_id, status, created_at)`, `(created_at, success)`, `(user_id, created_at)`
-  - Migration: a7daa58c33b9_add_performance_indexes
-  - Expected improvement: 40-85% query time reduction
-- **Redis Caching**:
-  - Admin dashboard statistics (30-second TTL)
-  - Graceful degradation on Redis failure
-  - Expected improvement: 99% faster dashboard response (cache hit)
-- **Frontend Bundle Optimization**:
-  - React.lazy() for Chart.js (172.43 kB chunk)
-  - Code splitting for admin routes
-  - Main bundle: 428.40 kB (gzip: 138.36 kB)
-  - Expected improvement: 29% faster initial load, 500-800ms TTI improvement on 3G
+#### 最適化
+- **データベースクエリ最適化**:
+  - 複合インデックス: `(user_id, status, created_at)`、`(created_at, success)`、`(user_id, created_at)`
+  - マイグレーション: a7daa58c33b9_add_performance_indexes
+  - 期待される改善: クエリ時間40-85%削減
+- **Redisキャッシング**:
+  - 管理ダッシュボード統計(TTL 30秒)
+  - Redis障害時のグレースフルデグラデーション
+  - 期待される改善: ダッシュボードレスポンス99%高速化(キャッシュヒット時)
+- **フロントエンドバンドル最適化**:
+  - Chart.js用React.lazy()(172.43 kBチャンク)
+  - 管理ルート用コード分割
+  - メインバンドル: 428.40 kB (gzip: 138.36 kB)
+  - 期待される改善: 初回ロード29%高速化、3GでのTTI 500-800ms改善
 
-### Phase 9: Deployment Preparation ✅
-**Completion Date**: 2025-10-13
+### Phase 9: デプロイ準備 ✅
+**完了日**: 2025-10-13
 
-#### Infrastructure
-- **Production Docker Compose** (`docker-compose.prod.yml`):
-  - GPU-enabled Celery worker
-  - SSL/TLS with Let's Encrypt (Certbot)
-  - Resource limits and health checks
-  - Automated backup and cleanup services
-- **Environment Configuration** (`.env.example`):
-  - Database, Redis, LDAP settings
-  - Security keys and SSL paths
-  - Backup and retention settings
-- **Production Nginx** (`nginx/nginx.prod.conf`):
-  - SSL/TLS configuration (Mozilla Modern)
-  - Security headers (HSTS, CSP, X-Frame-Options, etc.)
-  - Rate limiting (API: 10 req/s, Upload: 2 req/s)
-  - Gzip compression
-  - Static file caching
-- **Automated Scripts**:
-  - `scripts/backup.sh`: Daily PostgreSQL backups with verification
-  - `backend/app/scripts/cleanup_files.py`: Automated file deletion (24-hour retention)
-- **Production Dockerfile** (`backend/Dockerfile`):
-  - Non-root user execution
-  - Health checks
-  - Multiple uvicorn workers (4 workers)
+#### インフラストラクチャ
+- **本番環境Docker Compose** (`docker-compose.prod.yml`):
+  - GPU対応Celeryワーカー
+  - Let's Encrypt(Certbot)によるSSL/TLS
+  - リソース制限とヘルスチェック
+  - 自動バックアップとクリーンアップサービス
+- **環境設定** (`.env.example`):
+  - データベース、Redis、LDAP設定
+  - セキュリティキーとSSLパス
+  - バックアップと保持設定
+- **本番環境Nginx** (`nginx/nginx.prod.conf`):
+  - SSL/TLS設定(Mozilla Modern)
+  - セキュリティヘッダー(HSTS、CSP、X-Frame-Optionsなど)
+  - レート制限(API: 10 req/s、アップロード: 2 req/s)
+  - Gzip圧縮
+  - 静的ファイルキャッシング
+- **自動化スクリプト**:
+  - `scripts/backup.sh`: 検証機能付き日次PostgreSQLバックアップ
+  - `backend/app/scripts/cleanup_files.py`: 自動ファイル削除(24時間保持)
+- **本番環境Dockerfile** (`backend/Dockerfile`):
+  - 非rootユーザー実行
+  - ヘルスチェック
+  - 複数のuvicornワーカー(4ワーカー)
 
-#### Documentation
-- **Setup Guide** (`docs/setup-guide.md`, 17KB):
-  - Development and production setup procedures
-  - System requirements
-  - NVIDIA GPU/Container Toolkit installation
-  - Database initialization
-  - SSL certificate setup
-- **Deployment Guide** (`docs/deployment-guide.md`, 24KB):
-  - Pre-deployment checklist
-  - Step-by-step deployment instructions
-  - Monitoring and alerting setup
-  - Backup and restore procedures
-  - Update and rollback procedures
-  - Scaling considerations
-- **API Specification** (`docs/api-specification.md`, 32KB):
-  - Complete API endpoint documentation
-  - Request/response examples
-  - Authentication flow
-  - Data models and schemas
-  - Error codes
-  - Rate limiting rules
-- **Troubleshooting Guide** (`docs/troubleshooting.md`, 21KB):
-  - Quick diagnostics
-  - Common issues and solutions
-  - Service, authentication, upload issues
-  - GPU, database, network problems
-  - Performance optimization tips
+#### ドキュメント
+- **セットアップガイド** (`docs/setup-guide.md`、17KB):
+  - 開発環境と本番環境のセットアップ手順
+  - システム要件
+  - NVIDIA GPU/Container Toolkitインストール
+  - データベース初期化
+  - SSL証明書セットアップ
+- **デプロイガイド** (`docs/deployment-guide.md`、24KB):
+  - デプロイ前チェックリスト
+  - ステップバイステップのデプロイ手順
+  - 監視とアラートのセットアップ
+  - バックアップとリストア手順
+  - 更新とロールバック手順
+  - スケーリングの考慮事項
+- **API仕様** (`docs/api-specification.md`、32KB):
+  - 完全なAPIエンドポイントドキュメント
+  - リクエスト/レスポンス例
+  - 認証フロー
+  - データモデルとスキーマ
+  - エラーコード
+  - レート制限ルール
+- **トラブルシューティングガイド** (`docs/troubleshooting.md`、21KB):
+  - クイック診断
+  - 一般的な問題と解決策
+  - サービス、認証、アップロードの問題
+  - GPU、データベース、ネットワークの問題
+  - パフォーマンス最適化のヒント
 
-### Phase 10: Acceptance Testing and Release 🚧
-**Status**: In Progress
+### Phase 10: 受入テストとリリース 🚧
+**ステータス**: 進行中
 
-- **Acceptance Test Scenarios** (`docs/acceptance-test-scenarios.md`, 32KB):
-  - 88+ test cases covering:
-    - User workflow scenarios (UAT-001 to UAT-003)
-    - Functional tests (FT-001 to FT-009)
-    - Performance tests (PT-001 to PT-005)
-    - Security tests (ST-001 to ST-006)
-    - Compatibility tests (CT-001 to CT-003)
-    - Error handling tests (EH-001 to EH-004)
-  - Test execution checklist (8-day plan)
-  - Test results template
-- **User Manual** (`docs/user-manual.md`, 29KB):
-  - Japanese language end-user guide
-  - Step-by-step usage instructions
-  - Troubleshooting section
-  - FAQ (12 questions)
-  - Glossary of terms
-- **Release Notes**: This document
+- **受入テストシナリオ** (`docs/acceptance-test-scenarios.md`、32KB):
+  - 88以上のテストケース:
+    - ユーザーワークフローシナリオ(UAT-001 to UAT-003)
+    - 機能テスト(FT-001 to FT-009)
+    - パフォーマンステスト(PT-001 to PT-005)
+    - セキュリティテスト(ST-001 to ST-006)
+    - 互換性テスト(CT-001 to CT-003)
+    - エラーハンドリングテスト(EH-001 to EH-004)
+  - テスト実行チェックリスト(8日間プラン)
+  - テスト結果テンプレート
+- **ユーザーマニュアル** (`docs/user-manual.md`、29KB):
+  - 日本語エンドユーザーガイド
+  - ステップバイステップの使用手順
+  - トラブルシューティングセクション
+  - FAQ(12質問)
+  - 用語集
+- **リリースノート**: 本ドキュメント
 
-### Additional Implementations (Post-Release)
+### 追加実装(リリース後)
 
-#### Docker Compose Configuration Cleanup ✅
-**Completion Date**: 2025-10-13
+#### Docker Compose設定のクリーンアップ ✅
+**完了日**: 2025-10-13
 
-**Problem**: Multiple overlapping docker-compose files causing confusion
-- `docker-compose.yml` (development)
-- `docker-compose.dev.yml` (almost empty)
-- `docker-compose.dev-full.yml` (duplicate of docker-compose.yml)
-- `docker-compose.prod.yml` (production)
+**問題**: 混乱を招く複数の重複docker-composeファイル
+- `docker-compose.yml` (開発)
+- `docker-compose.dev.yml` (ほぼ空)
+- `docker-compose.dev-full.yml` (docker-compose.ymlの複製)
+- `docker-compose.prod.yml` (本番)
 
-**Solution**: Simplified to 2 clear files
-- ✅ **Removed**: `docker-compose.dev.yml`, `docker-compose.dev-full.yml`
-- ✅ **Kept**: `docker-compose.yml` (development), `docker-compose.prod.yml` (production)
-- ✅ **Enhanced**: Added `model-cache` volume for HuggingFace model caching
-- ✅ **Enhanced**: Added `--queues transcription` to celery worker command
-- ✅ **Documentation**: Added "Docker Compose Files" section to setup-guide.md
-- ✅ **Documentation**: Updated README.md with file usage comparison table
+**解決策**: 2つの明確なファイルに簡素化
+- ✅ **削除**: `docker-compose.dev.yml`、`docker-compose.dev-full.yml`
+- ✅ **保持**: `docker-compose.yml` (開発)、`docker-compose.prod.yml` (本番)
+- ✅ **拡張**: HuggingFaceモデルキャッシング用の`model-cache`ボリューム追加
+- ✅ **拡張**: celeryワーカーコマンドに`--queues transcription`を追加
+- ✅ **ドキュメント**: setup-guide.mdに「Docker Composeファイル」セクションを追加
+- ✅ **ドキュメント**: ファイル使用比較表でREADME.mdを更新
 
-**Benefits**:
-- Clear separation: development vs. production
-- No file duplication or confusion
-- Better documentation for users
-- Improved model caching performance
+**メリット**:
+- 明確な分離: 開発環境 vs. 本番環境
+- ファイルの重複や混乱なし
+- ユーザー向けドキュメントの改善
+- モデルキャッシングパフォーマンスの向上
 
-#### Transformers Backend Support (CUDA 11.4 Compatibility) ✅
-**Completion Date**: 2025-10-13
+#### Transformersバックエンドサポート(CUDA 11.4互換性) ✅
+**完了日**: 2025-10-13
 
-**Problem**: faster-whisper requires CUDA 11.8+, incompatible with CUDA 11.4 environments
+**問題**: faster-whisperはCUDA 11.8以降が必要で、CUDA 11.4環境と互換性なし
 
-**Solution**: Dual backend architecture with factory pattern
-- ✅ **New Backend**: `WhisperTranscriberTransformers` class using HuggingFace transformers
-- ✅ **Factory Function**: `get_transcriber()` for dynamic backend selection
-- ✅ **Environment Variable**: `WHISPER_BACKEND` to choose "faster-whisper" (default) or "transformers"
-- ✅ **Requirements File**: `requirements-transformers-cuda114.txt` with CUDA 11.4 compatible dependencies
-- ✅ **Backward Compatible**: faster-whisper backend unchanged, default behavior preserved
-- ✅ **Fallback Logic**: Automatic fallback if requested backend unavailable
+**解決策**: ファクトリパターンを使用したデュアルバックエンドアーキテクチャ
+- ✅ **新バックエンド**: HuggingFace transformersを使用した`WhisperTranscriberTransformers`クラス
+- ✅ **ファクトリ関数**: 動的バックエンド選択のための`get_transcriber()`
+- ✅ **環境変数**: "faster-whisper"(デフォルト)または"transformers"を選択する`WHISPER_BACKEND`
+- ✅ **要件ファイル**: CUDA 11.4互換依存関係を含む`requirements-transformers-cuda114.txt`
+- ✅ **後方互換性**: faster-whisperバックエンド未変更、デフォルト動作を維持
+- ✅ **フォールバックロジック**: 要求されたバックエンドが利用できない場合の自動フォールバック
 
-**Technical Details**:
-- transformers backend uses `WhisperForConditionalGeneration` from HuggingFace
-- Supports same models as faster-whisper (tiny, base, small, medium, large-v3, large-v3-turbo)
-- Returns identical segment structure for API compatibility
-- PyTorch CUDA 11.7 binaries work on CUDA 11.4 via forward compatibility
+**技術詳細**:
+- transformersバックエンドはHuggingFaceの`WhisperForConditionalGeneration`を使用
+- faster-whisperと同じモデルをサポート(tiny、base、small、medium、large-v3、large-v3-turbo)
+- API互換性のために同一のセグメント構造を返す
+- PyTorch CUDA 11.7バイナリは前方互換性によりCUDA 11.4で動作
 
-**Performance Trade-offs**:
-| Backend | CUDA Requirement | Speed | VRAM Usage | Use Case |
+**パフォーマンストレードオフ**:
+| バックエンド | CUDA要件 | 速度 | VRAM使用量 | ユースケース |
 |---------|-----------------|-------|------------|----------|
-| **faster-whisper** | 11.8+ / 12.x | ⚡ Fast | Lower | Recommended |
-| **transformers** | 11.4+ | 🐌 2-4x slower | 1.5-2x higher | CUDA 11.4 only |
+| **faster-whisper** | 11.8+ / 12.x | ⚡ 高速 | 低い | 推奨 |
+| **transformers** | 11.4+ | 🐌 2-4倍遅い | 1.5-2倍高い | CUDA 11.4のみ |
 
-**Documentation**:
-- ✅ Updated README.md with backend comparison table
-- ✅ Added "CUDA 11.4 Specific Setup" section to setup-guide.md
-- ✅ Added "Transformers Backend Not Working" section to troubleshooting.md
-- ✅ Updated architecture.md with backend selection architecture
-- ✅ Updated development-plan.md with implementation record
+**ドキュメント**:
+- ✅ バックエンド比較表でREADME.mdを更新
+- ✅ setup-guide.mdに「CUDA 11.4固有のセットアップ」セクションを追加
+- ✅ troubleshooting.mdに「Transformersバックエンドが動作しない」セクションを追加
+- ✅ バックエンド選択アーキテクチャでarchitecture.mdを更新
+- ✅ 実装記録でdevelopment-plan.mdを更新
 
-**Files Changed**:
-- `backend/app/tasks/transcription_tasks.py`: Added factory function
-- `backend/app/tasks/whisper_transformers.py`: New file (404 lines)
-- `backend/requirements-transformers-cuda114.txt`: New file
+**変更されたファイル**:
+- `backend/app/tasks/transcription_tasks.py`: ファクトリ関数追加
+- `backend/app/tasks/whisper_transformers.py`: 新ファイル(404行)
+- `backend/requirements-transformers-cuda114.txt`: 新ファイル
 
-**Testing**:
-- ✅ Verified faster-whisper still works as default
-- ✅ Verified transformers backend activates correctly
-- ✅ Confirmed backward compatibility
+**テスト**:
+- ✅ faster-whisperがデフォルトとして正常に動作することを確認
+- ✅ transformersバックエンドが正しくアクティブ化されることを確認
+- ✅ 後方互換性を確認
 
 ---
 
-## Feature Highlights
+## 機能ハイライト
 
-### 1. Multi-Model Whisper Support
+### 1. マルチモデルWhisperサポート
 
-Choose the optimal model for your use case:
+ユースケースに最適なモデルを選択:
 
-| Model | Speed | Accuracy | VRAM | Use Case |
+| モデル | 速度 | 精度 | VRAM | ユースケース |
 |-------|-------|----------|------|----------|
-| Tiny | ⚡⚡⚡ | ⭐⭐ | ~1GB | Quick preview, short audio |
-| Large V3 Turbo | ⚡⚡ | ⭐⭐⭐ | ~10GB | Balanced, recommended for most use cases |
-| Large V3 | ⚡ | ⭐⭐⭐⭐ | ~12GB | Highest accuracy, critical meetings |
+| Tiny | ⚡⚡⚡ | ⭐⭐ | 約1GB | クイックプレビュー、短い音声 |
+| Large V3 Turbo | ⚡⚡ | ⭐⭐⭐ | 約10GB | バランス型、ほとんどのユースケースに推奨 |
+| Large V3 | ⚡ | ⭐⭐⭐⭐ | 約12GB | 最高精度、重要な会議 |
 
-### 2. Speaker Diarization
+### 2. 話者分離
 
-- Automatically identifies multiple speakers in audio
-- Labels each segment with speaker ID
-- User can specify exact speaker count or use auto-detection
-- Edit speaker labels (e.g., "Speaker 1" → "John Smith")
+- 音声内の複数の話者を自動識別
+- 各セグメントに話者IDでラベル付け
+- ユーザーは正確な話者数を指定または自動検出を使用可能
+- 話者ラベルの編集(例: 「Speaker 1」→「田中太郎」)
 
-### 3. Subtitle Export
+### 3. 字幕エクスポート
 
-Generate industry-standard subtitle files:
+業界標準の字幕ファイルを生成:
 
-- **SRT Format**: Compatible with VLC, Windows Media Player, most video editors
-- **WebVTT Format**: HTML5 video player compatible, web-ready
+- **SRT形式**: VLC、Windows Media Player、ほとんどのビデオエディタと互換性あり
+- **WebVTT形式**: HTML5ビデオプレーヤー互換、Web対応
 
-Both formats include:
-- Accurate timestamps
-- Speaker labels
-- Edited content
+両形式には以下が含まれます:
+- 正確なタイムスタンプ
+- 話者ラベル
+- 編集されたコンテンツ
 
-### 4. Real-Time Progress Tracking
+### 4. リアルタイム進捗追跡
 
-- Live status updates every 3 seconds
-- Progress bar with percentage (0% → 100%)
-- Stage-by-stage updates:
-  - Audio extraction (10-20%)
-  - Transcription (30-80%)
-  - Speaker diarization (85-90%)
-  - Result saving (95-100%)
+- 3秒ごとのライブステータス更新
+- パーセンテージ付き進捗バー(0% → 100%)
+- ステージ別更新:
+  - 音声抽出(10-20%)
+  - 文字起こし(30-80%)
+  - 話者分離(85-90%)
+  - 結果保存(95-100%)
 
-### 5. Admin Dashboard
+### 5. 管理ダッシュボード
 
-Real-time system monitoring:
+リアルタイムシステム監視:
 
-- **GPU Status**: Memory usage, temperature, utilization
-- **Worker Status**: Active Celery workers, health
-- **Task Queue**: Pending and processing task counts
-- **Statistics**: Total users, tasks, processing times
-- **Usage Analytics**: Model preferences, file format breakdown
-- **Hourly Chart**: Processing volume by hour (Chart.js)
+- **GPUステータス**: メモリ使用量、温度、使用率
+- **ワーカーステータス**: アクティブなCeleryワーカー、ヘルス
+- **タスクキュー**: 保留中および処理中のタスク数
+- **統計**: ユーザー総数、タスク、処理時間
+- **使用状況分析**: モデルの好み、ファイル形式の内訳
+- **時間別チャート**: 時間別処理量(Chart.js)
 
-### 6. Processing History
+### 6. 処理履歴
 
-Track all transcription tasks:
+すべての文字起こしタスクを追跡:
 
-- Filterable history table (by status, model, date)
-- User statistics (total processed, success rate, avg time)
-- Per-task details (model, file size, processing time, GPU usage)
-- Pagination for large datasets
+- フィルタリング可能な履歴テーブル(ステータス、モデル、日付別)
+- ユーザー統計(処理総数、成功率、平均時間)
+- タスク別詳細(モデル、ファイルサイズ、処理時間、GPU使用量)
+- 大規模データセット用のページネーション
 
-### 7. Security
+### 7. セキュリティ
 
-- **LDAP Authentication**: Enterprise single sign-on
-- **JWT Authorization**: Secure API access with refresh tokens
-- **Role-Based Access Control**: Admin vs. regular user permissions
-- **File Isolation**: Users can only access their own files
-- **SSL/TLS Encryption**: HTTPS with Let's Encrypt
-- **Rate Limiting**: Prevent abuse (10 req/s API, 2 req/s upload)
-- **Security Headers**: HSTS, CSP, X-Frame-Options, etc.
+- **LDAP認証**: エンタープライズシングルサインオン
+- **JWT認可**: リフレッシュトークン付きの安全なAPIアクセス
+- **ロールベースのアクセス制御**: 管理者 vs. 一般ユーザー権限
+- **ファイル分離**: ユーザーは自分のファイルのみアクセス可能
+- **SSL/TLS暗号化**: Let's EncryptによるHTTPS
+- **レート制限**: 悪用防止(API 10 req/s、アップロード 2 req/s)
+- **セキュリティヘッダー**: HSTS、CSP、X-Frame-Optionsなど
 
 ---
 
-## Technical Stack
+## 技術スタック
 
-### Backend
-- **Framework**: FastAPI 0.104+ (async/await)
-- **Language**: Python 3.11+
-- **Database**: PostgreSQL 15+ with asyncpg
+### バックエンド
+- **フレームワーク**: FastAPI 0.104+ (async/await)
+- **言語**: Python 3.11+
+- **データベース**: PostgreSQL 15+ with asyncpg
 - **ORM**: SQLAlchemy 2.0+ (async)
-- **Migration**: Alembic 1.12+
-- **Task Queue**: Celery 5.3+ with Redis broker
-- **Authentication**: python-ldap + PyJWT
-- **AI Models**:
-  - faster-whisper 1.2.0+ (OpenAI Whisper, default backend, CUDA 11.8+ required)
-  - transformers 4.35.2+ (Alternative Whisper backend, CUDA 11.4+ compatible)
-  - Resemblyzer 0.1.1.dev0 (speaker diarization)
-- **Audio Processing**: FFmpeg 4.4+
+- **マイグレーション**: Alembic 1.12+
+- **タスクキュー**: Celery 5.3+ with Redis broker
+- **認証**: python-ldap + PyJWT
+- **AIモデル**:
+  - faster-whisper 1.2.0+ (OpenAI Whisper、デフォルトバックエンド、CUDA 11.8以降が必要)
+  - transformers 4.35.2+ (代替Whisperバックエンド、CUDA 11.4以降互換)
+  - Resemblyzer 0.1.1.dev0 (話者分離)
+- **音声処理**: FFmpeg 4.4+
 - **GPU**:
-  - CUDA 11.4+ (transformers backend)
-  - CUDA 11.8+ or 12.x (faster-whisper backend, recommended)
-  - PyTorch 2.0.1+ (CUDA-enabled)
+  - CUDA 11.4+ (transformersバックエンド)
+  - CUDA 11.8+ or 12.x (faster-whisperバックエンド、推奨)
+  - PyTorch 2.0.1+ (CUDA対応)
 
-### Frontend
-- **Framework**: React 18+ with TypeScript 5+
-- **Build Tool**: Vite 5+
-- **UI Library**: shadcn/ui (Radix UI primitives)
-- **Styling**: TailwindCSS 3+
-- **State Management**:
-  - TanStack Query v5 (server state)
-  - Zustand 4+ (client state)
-- **Routing**: React Router 6+
-- **File Upload**: react-dropzone 14+
-- **Charts**: Chart.js 4+ with react-chartjs-2
-- **HTTP Client**: axios 1.6+
+### フロントエンド
+- **フレームワーク**: React 18+ with TypeScript 5+
+- **ビルドツール**: Vite 5+
+- **UIライブラリ**: shadcn/ui (Radix UIプリミティブ)
+- **スタイリング**: TailwindCSS 3+
+- **状態管理**:
+  - TanStack Query v5 (サーバー状態)
+  - Zustand 4+ (クライアント状態)
+- **ルーティング**: React Router 6+
+- **ファイルアップロード**: react-dropzone 14+
+- **チャート**: Chart.js 4+ with react-chartjs-2
+- **HTTPクライアント**: axios 1.6+
 
-### Infrastructure
-- **Containerization**: Docker 24+, Docker Compose 2.20+
-- **Web Server**: Nginx 1.24+ (reverse proxy, SSL termination)
+### インフラストラクチャ
+- **コンテナ化**: Docker 24+、Docker Compose 2.20+
+- **Webサーバー**: Nginx 1.24+ (リバースプロキシ、SSL終端)
 - **SSL**: Let's Encrypt with Certbot
-- **Caching**: Redis 7+ (Celery broker + application cache)
-- **GPU Runtime**: NVIDIA Container Toolkit
+- **キャッシング**: Redis 7+ (Celeryブローカー + アプリケーションキャッシュ)
+- **GPUランタイム**: NVIDIA Container Toolkit
 
-### Development Tools
-- **Testing**:
-  - Backend: pytest, pytest-asyncio, httpx (AsyncClient)
-  - Frontend: Vitest, Testing Library, jsdom
-- **Linting**: Ruff, Black, ESLint, Prettier
-- **Type Checking**: mypy (Python), TypeScript
+### 開発ツール
+- **テスト**:
+  - バックエンド: pytest、pytest-asyncio、httpx (AsyncClient)
+  - フロントエンド: Vitest、Testing Library、jsdom
+- **リンティング**: Ruff、Black、ESLint、Prettier
+- **型チェック**: mypy (Python)、TypeScript
 
 ---
 
-## System Requirements
+## システム要件
 
-### Hardware
+### ハードウェア
 
-#### Minimum (Development)
-- **CPU**: 4 cores
+#### 最小要件(開発)
+- **CPU**: 4コア
 - **RAM**: 16GB
-- **Storage**: 100GB SSD
-- **GPU**: None (CPU-only mode with mock transcription)
+- **ストレージ**: 100GB SSD
+- **GPU**: なし(モック文字起こし付きCPUのみモード)
 
-#### Recommended (Production)
-- **CPU**: 8+ cores
-- **RAM**: 32GB+
-- **Storage**: 500GB+ SSD
-- **GPU**: NVIDIA GPU with 20GB+ VRAM (e.g., RTX 3090, A5000, A6000)
+#### 推奨要件(本番)
+- **CPU**: 8コア以上
+- **RAM**: 32GB以上
+- **ストレージ**: 500GB以上 SSD
+- **GPU**: 20GB以上のVRAMを搭載したNVIDIA GPU(例: RTX 3090、A5000、A6000)
   - CUDA 11.8 or 12.4
-  - NVIDIA Driver 535.xx or later
+  - NVIDIAドライバ 535.xx以降
 
-### Software
+### ソフトウェア
 
-- **OS**: Ubuntu 22.04 LTS (recommended) or compatible Linux distribution
+- **OS**: Ubuntu 22.04 LTS(推奨)または互換性のあるLinuxディストリビューション
 - **Docker**: 24.0+
 - **Docker Compose**: 2.20+
-- **NVIDIA Container Toolkit**: Latest version (for GPU support)
+- **NVIDIA Container Toolkit**: 最新版(GPUサポート用)
 
-### Network
+### ネットワーク
 
-- **Bandwidth**: 10 Mbps+ for file uploads
-- **Firewall**: Open ports 80 (HTTP), 443 (HTTPS)
+- **帯域幅**: ファイルアップロード用に10 Mbps以上
+- **ファイアウォール**: ポート80(HTTP)、443(HTTPS)を開放
 
 ---
 
-## Installation and Deployment
+## インストールとデプロイ
 
-### Quick Start (Development)
+### クイックスタート(開発)
 
 ```bash
-# Clone repository
+# リポジトリをクローン
 git clone https://github.com/your-org/whisper-app.git
 cd whisper-app
 
-# Copy environment file
+# 環境ファイルをコピー
 cp .env.example .env
 
-# Edit .env with your settings
+# 設定を編集
 nano .env
 
-# Start all services (uses docker-compose.yml for development)
+# すべてのサービスを起動(開発用にdocker-compose.ymlを使用)
 docker-compose up -d --build
 
-# Check service status
+# サービスステータスを確認
 docker-compose ps
 
-# View logs
+# ログを表示
 docker-compose logs -f
 
-# Access application
-# Frontend: http://localhost:5174
-# Backend API: http://localhost:8001
-# API Docs: http://localhost:8001/docs
+# アプリケーションにアクセス
+# フロントエンド: http://localhost:5174
+# バックエンドAPI: http://localhost:8001
+# APIドキュメント: http://localhost:8001/docs
 ```
 
-**Note**: The development environment uses `docker-compose.yml` (default). For CUDA 11.4 environments, see "CUDA 11.4 Specific Setup" in [Setup Guide](./setup-guide.md).
+**注意**: 開発環境では`docker-compose.yml`(デフォルト)を使用します。CUDA 11.4環境については、[セットアップガイド](./setup-guide.md)の「CUDA 11.4固有のセットアップ」を参照してください。
 
-### Production Deployment
+### 本番デプロイ
 
-See **[Deployment Guide](./deployment-guide.md)** for detailed instructions.
+詳細な手順については**[デプロイガイド](./deployment-guide.md)**を参照してください。
 
-**Quick Steps**:
+**クイックステップ**:
 
-1. Prepare production server with GPU
-2. Install Docker, Docker Compose, NVIDIA Container Toolkit
-3. Configure `.env` file with production settings
-4. Obtain SSL certificate (Let's Encrypt)
-5. Deploy with `docker-compose -f docker-compose.prod.yml up -d`
-6. Run acceptance tests
-7. Monitor system status
+1. GPU搭載の本番サーバーを準備
+2. Docker、Docker Compose、NVIDIA Container Toolkitをインストール
+3. `.env`ファイルを本番設定で構成
+4. SSL証明書を取得(Let's Encrypt)
+5. `docker-compose -f docker-compose.prod.yml up -d`でデプロイ
+6. 受入テストを実行
+7. システムステータスを監視
 
 ---
 
-## Performance Metrics
+## パフォーマンス指標
 
-### Transcription Speed (GPU: NVIDIA RTX 3090)
+### 文字起こし速度(GPU: NVIDIA RTX 3090)
 
-| Audio Length | Model | Processing Time | Real-Time Factor |
+| 音声長 | モデル | 処理時間 | リアルタイム係数 |
 |-------------|-------|----------------|------------------|
-| 30 seconds | Tiny | ~3 seconds | 0.1x |
-| 30 seconds | Large V3 Turbo | ~15 seconds | 0.5x |
-| 5 minutes | Large V3 Turbo | ~2.5 minutes | 0.5x |
-| 30 minutes | Large V3 | ~20 minutes | 0.67x |
+| 30秒 | Tiny | 約3秒 | 0.1x |
+| 30秒 | Large V3 Turbo | 約15秒 | 0.5x |
+| 5分 | Large V3 Turbo | 約2.5分 | 0.5x |
+| 30分 | Large V3 | 約20分 | 0.67x |
 
-**Real-Time Factor**: Processing time / audio duration (lower is faster)
+**リアルタイム係数**: 処理時間 / 音声時間(低いほど高速)
 
-### API Response Times
+### APIレスポンスタイム
 
-| Endpoint | p50 | p95 | p99 |
+| エンドポイント | p50 | p95 | p99 |
 |----------|-----|-----|-----|
 | GET /api/v1/tasks | 45ms | 120ms | 180ms |
 | GET /api/v1/tasks/{id}/status | 20ms | 50ms | 80ms |
-| GET /api/v1/admin/dashboard (cached) | 15ms | 30ms | 50ms |
-| GET /api/v1/admin/dashboard (uncached) | 250ms | 450ms | 600ms |
-| POST /api/v1/upload | 200ms | 500ms | 800ms (excludes file transfer time) |
+| GET /api/v1/admin/dashboard (キャッシュ済) | 15ms | 30ms | 50ms |
+| GET /api/v1/admin/dashboard (キャッシュなし) | 250ms | 450ms | 600ms |
+| POST /api/v1/upload | 200ms | 500ms | 800ms (ファイル転送時間を除く) |
 
-### Database Query Performance
+### データベースクエリパフォーマンス
 
-After Phase 8 optimization:
+Phase 8最適化後:
 
-| Query | Before | After | Improvement |
+| クエリ | 最適化前 | 最適化後 | 改善率 |
 |-------|--------|-------|-------------|
-| Task list (paginated) | 180ms | 65ms | 64% |
-| History list (filtered) | 320ms | 85ms | 73% |
-| Dashboard stats (no cache) | 2800ms | 450ms | 84% |
+| タスクリスト(ページネーション) | 180ms | 65ms | 64% |
+| 履歴リスト(フィルタリング) | 320ms | 85ms | 73% |
+| ダッシュボード統計(キャッシュなし) | 2800ms | 450ms | 84% |
 
-### Concurrent User Support
+### 同時ユーザーサポート
 
-- **Target**: 20 concurrent users
-- **Load Test Result** (pending acceptance test):
-  - Users: 20
-  - Duration: 30 minutes
-  - Success rate: Expected 99%+
-  - Error rate: Expected < 1%
+- **目標**: 20人の同時ユーザー
+- **負荷テスト結果**(受入テスト保留中):
+  - ユーザー: 20人
+  - 期間: 30分
+  - 成功率: 99%以上を期待
+  - エラー率: 1%未満を期待
 
 ---
 
-## Security
+## セキュリティ
 
-### Authentication and Authorization
+### 認証と認可
 
-- **LDAP Integration**: Enterprise directory authentication
-- **JWT Tokens**:
-  - Access token expiry: 15 minutes
-  - Refresh token expiry: 7 days
-  - Automatic refresh on expiry
-- **Password Security**: Passwords never stored in app database (LDAP only)
+- **LDAP統合**: エンタープライズディレクトリ認証
+- **JWTトークン**:
+  - アクセストークン有効期限: 15分
+  - リフレッシュトークン有効期限: 7日
+  - 有効期限切れ時の自動リフレッシュ
+- **パスワードセキュリティ**: パスワードはアプリデータベースに保存されません(LDAPのみ)
 
-### API Security
+### APIセキュリティ
 
-- **Rate Limiting**:
-  - General API: 10 requests/second per IP
-  - Upload endpoint: 2 requests/second per IP
-- **CORS**: Configured for same-origin policy
-- **Input Validation**: Pydantic schemas for all API inputs
+- **レート制限**:
+  - 一般API: IPごとに毎秒10リクエスト
+  - アップロードエンドポイント: IPごとに毎秒2リクエスト
+- **CORS**: 同一オリジンポリシー用に設定
+- **入力検証**: すべてのAPI入力にPydanticスキーマを使用
 
-### Infrastructure Security
+### インフラストラクチャセキュリティ
 
 - **SSL/TLS**:
-  - TLS 1.2 and 1.3 only
-  - Modern cipher suites (Mozilla Modern configuration)
-  - HSTS enabled (max-age: 2 years)
-- **Security Headers**:
+  - TLS 1.2と1.3のみ
+  - モダンな暗号スイート(Mozilla Modern設定)
+  - HSTS有効(max-age: 2年)
+- **セキュリティヘッダー**:
   - Content-Security-Policy
   - X-Frame-Options: SAMEORIGIN
   - X-Content-Type-Options: nosniff
   - Referrer-Policy: strict-origin-when-cross-origin
-- **Container Security**:
-  - Non-root user execution
-  - Minimal base images
-  - Regular security updates
+- **コンテナセキュリティ**:
+  - 非rootユーザー実行
+  - 最小限のベースイメージ
+  - 定期的なセキュリティアップデート
 
-### Data Protection
+### データ保護
 
-- **File Isolation**: User files stored in separate directories
-- **Automatic Deletion**: Files deleted after 24 hours (configurable)
-- **Database Access**: Role-based row-level permissions
-- **Backup Encryption**: Option to encrypt backups (see deployment guide)
+- **ファイル分離**: ユーザーファイルは個別のディレクトリに保存
+- **自動削除**: 24時間後にファイルを削除(設定可能)
+- **データベースアクセス**: ロールベースの行レベル権限
+- **バックアップ暗号化**: バックアップの暗号化オプション(デプロイガイド参照)
 
-### Known Security Considerations
+### 既知のセキュリティ考慮事項
 
-- **LDAP Credentials**: Stored in environment variables (use secrets management in production)
-- **JWT Secret**: Stored in environment variables (generate strong random key)
-- **API Documentation**: Disable `/docs` and `/redoc` in production or require authentication
-
----
-
-## Known Issues and Limitations
-
-### Limitations
-
-1. **File Size**: Maximum 1GB per file (configurable via `MAX_FILE_SIZE`)
-2. **File Retention**: Files auto-deleted after 24 hours (configurable via `FILE_RETENTION_HOURS`)
-3. **Concurrent Processing**: Limited by GPU memory (typically 2-3 Large V3 tasks simultaneously)
-4. **Browser Support**: Modern browsers only (Chrome, Firefox, Edge, Safari latest versions)
-5. **Language UI**: User interface is in Japanese (can be internationalized in future)
-
-### Known Issues
-
-1. **Transformers Backend Performance**:
-   - Transformers backend is 2-4x slower than faster-whisper
-   - Uses 1.5-2x more VRAM than faster-whisper
-   - **Recommendation**: Only use transformers backend for CUDA 11.4 environments
-   - **Workaround**: Upgrade to CUDA 11.8+ or 12.x for faster-whisper if possible
-
-2. **Resemblyzer Dependency Compatibility**:
-   - Requires numpy 1.23.5 (incompatible with numpy 1.24+)
-   - Requires librosa 0.9.1 (incompatible with librosa 0.10+)
-   - FutureWarning messages appear in logs (functional impact: none)
-   - **Workaround**: Dependencies pinned in requirements files
-
-3. **GPU Memory Monitoring**:
-   - GPU memory check is point-in-time (not reserved)
-   - Multiple tasks may start if memory check passes simultaneously
-   - **Workaround**: Limit Celery concurrency to 1-2 workers per GPU
-
-4. **Integration Tests**:
-   - Some integration tests require adjustment for token handling
-   - **Status**: Tests created, minor refinement needed before production
-
-5. **React Router v7 Warning**:
-   - Console warning about future React Router version
-   - **Impact**: No functional impact, can be addressed in future update
-
-### Future Improvements
-
-See [Future Roadmap](#future-roadmap) section below.
+- **LDAP認証情報**: 環境変数に保存(本番環境ではシークレット管理を使用)
+- **JWTシークレット**: 環境変数に保存(強力なランダムキーを生成)
+- **APIドキュメント**: 本番環境で`/docs`と`/redoc`を無効化するか認証を要求
 
 ---
 
-## Upgrade Instructions
+## 既知の問題と制限事項
 
-### From Development to Production
+### 制限事項
 
-This is the initial release (v1.0.0). To deploy to production:
+1. **ファイルサイズ**: ファイルごとに最大1GB(`MAX_FILE_SIZE`で設定可能)
+2. **ファイル保持**: 24時間後にファイルを自動削除(`FILE_RETENTION_HOURS`で設定可能)
+3. **並行処理**: GPUメモリによって制限(通常、Large V3タスクを同時に2-3個)
+4. **ブラウザサポート**: モダンブラウザのみ(Chrome、Firefox、Edge、Safari最新版)
+5. **言語UI**: ユーザーインターフェースは日本語(将来的に国際化可能)
 
-1. Follow the **[Deployment Guide](./deployment-guide.md)**
-2. Run acceptance tests per **[Acceptance Test Scenarios](./acceptance-test-scenarios.md)**
-3. Configure monitoring and backups
-4. Train users with **[User Manual](./user-manual.md)**
+### 既知の問題
 
-### Future Version Upgrades
+1. **Transformersバックエンドのパフォーマンス**:
+   - transformersバックエンドはfaster-whisperより2-4倍遅い
+   - faster-whisperより1.5-2倍多くのVRAMを使用
+   - **推奨**: transformersバックエンドはCUDA 11.4環境でのみ使用
+   - **回避策**: 可能であればfaster-whisper用にCUDA 11.8以降または12.xにアップグレード
 
-Future releases will include upgrade instructions here.
+2. **Resemblyzer依存関係の互換性**:
+   - numpy 1.23.5が必要(numpy 1.24以降と互換性なし)
+   - librosa 0.9.1が必要(librosa 0.10以降と互換性なし)
+   - ログにFutureWarning メッセージが表示される(機能的影響: なし)
+   - **回避策**: 要件ファイルで依存関係を固定
 
-**General Process**:
-1. Backup database and files
-2. Pull new code version
-3. Run database migrations (`alembic upgrade head`)
-4. Rebuild Docker images (`docker-compose build`)
-5. Restart services (`docker-compose up -d`)
-6. Verify system health
+3. **GPUメモリ監視**:
+   - GPUメモリチェックはポイントインタイム(予約されていない)
+   - メモリチェックが同時に合格すると複数のタスクが開始される可能性
+   - **回避策**: GPU当たりCelery並行性を1-2ワーカーに制限
+
+4. **統合テスト**:
+   - 一部の統合テストでトークン処理の調整が必要
+   - **ステータス**: テスト作成済み、本番環境前に微調整が必要
+
+5. **React Router v7警告**:
+   - 将来のReact Routerバージョンに関するコンソール警告
+   - **影響**: 機能的影響なし、将来のアップデートで対処可能
+
+### 今後の改善
+
+下記の[今後のロードマップ](#今後のロードマップ)セクションを参照してください。
 
 ---
 
-## Breaking Changes
+## アップグレード手順
 
-None (initial release).
+### 開発環境から本番環境へ
 
-Future releases will document breaking changes here.
+これは初回リリース(v1.0.0)です。本番環境にデプロイするには:
+
+1. **[デプロイガイド](./deployment-guide.md)**に従ってください
+2. **[受入テストシナリオ](./acceptance-test-scenarios.md)**に従って受入テストを実行
+3. 監視とバックアップを設定
+4. **[ユーザーマニュアル](./user-manual.md)**でユーザーをトレーニング
+
+### 将来のバージョンアップグレード
+
+将来のリリースではここにアップグレード手順が含まれます。
+
+**一般的なプロセス**:
+1. データベースとファイルをバックアップ
+2. 新しいコードバージョンをプル
+3. データベースマイグレーションを実行(`alembic upgrade head`)
+4. Dockerイメージを再ビルド(`docker-compose build`)
+5. サービスを再起動(`docker-compose up -d`)
+6. システムヘルスを確認
 
 ---
 
-## Bug Fixes
+## 破壊的変更
 
-None (initial release).
+なし(初回リリース)。
 
-All bugs discovered during Phase 1-9 development were fixed before release.
-
-Future releases will document bug fixes here.
+将来のリリースではここに破壊的変更を記載します。
 
 ---
 
-## Documentation
+## バグ修正
 
-### Complete Documentation Set
+なし(初回リリース)。
 
-All documentation is located in the `/docs` directory:
+Phase 1-9開発中に発見されたすべてのバグはリリース前に修正されました。
 
-| Document | Description | Size | Status |
+将来のリリースではここにバグ修正を記載します。
+
+---
+
+## ドキュメント
+
+### 完全なドキュメントセット
+
+すべてのドキュメントは`/docs`ディレクトリにあります:
+
+| ドキュメント | 説明 | サイズ | ステータス |
 |----------|-------------|------|--------|
-| [requirement.md](./requirement.md) | Functional and non-functional requirements | 15KB | ✅ |
-| [technology-stack.md](./technology-stack.md) | Technology selection and rationale | 18KB | ✅ |
-| [architecture.md](./architecture.md) | System architecture and design | 26KB | ✅ |
-| [database-design.md](./database-design.md) | Complete database schema | 23KB | ✅ |
-| [development-plan.md](./development-plan.md) | 10-phase development plan | 30KB | ✅ |
-| [setup-guide.md](./setup-guide.md) | Setup instructions (dev + prod) | 17KB | ✅ |
-| [deployment-guide.md](./deployment-guide.md) | Production deployment procedures | 24KB | ✅ |
-| [api-specification.md](./api-specification.md) | Complete API documentation | 32KB | ✅ |
-| [troubleshooting.md](./troubleshooting.md) | Production troubleshooting guide | 21KB | ✅ |
-| [optimization-report.md](./optimization-report.md) | Phase 8 optimization details | 12KB | ✅ |
-| [acceptance-test-scenarios.md](./acceptance-test-scenarios.md) | Acceptance test cases | 32KB | ✅ |
-| [user-manual.md](./user-manual.md) | End-user guide (Japanese) | 29KB | ✅ |
-| [release-notes.md](./release-notes.md) | This document | - | ✅ |
-| [README.md](./README.md) | Documentation index | 2KB | ✅ |
+| [requirement.md](./requirement.md) | 機能要件と非機能要件 | 15KB | ✅ |
+| [technology-stack.md](./technology-stack.md) | 技術選択と根拠 | 18KB | ✅ |
+| [architecture.md](./architecture.md) | システムアーキテクチャと設計 | 26KB | ✅ |
+| [database-design.md](./database-design.md) | 完全なデータベーススキーマ | 23KB | ✅ |
+| [development-plan.md](./development-plan.md) | 10フェーズの開発計画 | 30KB | ✅ |
+| [setup-guide.md](./setup-guide.md) | セットアップ手順(開発 + 本番) | 17KB | ✅ |
+| [deployment-guide.md](./deployment-guide.md) | 本番デプロイ手順 | 24KB | ✅ |
+| [api-specification.md](./api-specification.md) | 完全なAPIドキュメント | 32KB | ✅ |
+| [troubleshooting.md](./troubleshooting.md) | 本番トラブルシューティングガイド | 21KB | ✅ |
+| [optimization-report.md](./optimization-report.md) | Phase 8最適化詳細 | 12KB | ✅ |
+| [acceptance-test-scenarios.md](./acceptance-test-scenarios.md) | 受入テストケース | 32KB | ✅ |
+| [user-manual.md](./user-manual.md) | エンドユーザーガイド(日本語) | 29KB | ✅ |
+| [release-notes.md](./release-notes.md) | 本ドキュメント | - | ✅ |
+| [README.md](./README.md) | ドキュメントインデックス | 2KB | ✅ |
 
-**Total Documentation**: ~280KB across 14 documents
+**ドキュメント総量**: 14ドキュメント、約280KB
 
-### Quick Links
+### クイックリンク
 
-- **Getting Started**: Start with [Setup Guide](./setup-guide.md)
-- **Deployment**: See [Deployment Guide](./deployment-guide.md)
-- **API Reference**: See [API Specification](./api-specification.md)
-- **User Guide**: See [User Manual](./user-manual.md) (Japanese)
-- **Troubleshooting**: See [Troubleshooting Guide](./troubleshooting.md)
+- **はじめに**: [セットアップガイド](./setup-guide.md)から開始
+- **デプロイ**: [デプロイガイド](./deployment-guide.md)を参照
+- **APIリファレンス**: [API仕様](./api-specification.md)を参照
+- **ユーザーガイド**: [ユーザーマニュアル](./user-manual.md)を参照(日本語)
+- **トラブルシューティング**: [トラブルシューティングガイド](./troubleshooting.md)を参照
 
 ---
 
-## Future Roadmap
+## 今後のロードマップ
 
-### Phase 11: ChatGPT Integration (Planned)
+### Phase 11: ChatGPT統合(計画中)
 
-**Status**: Documented in `requirement.md` Section 5.2 and `architecture.md` Section 11
+**ステータス**: `requirement.md`セクション5.2および`architecture.md`セクション11に記載
 
-Planned features:
-- **LLM Processing**: Send transcription to ChatGPT for:
-  - Meeting summary generation
-  - Action item extraction
-  - Q&A formatting
-  - Custom prompt templates
-- **Architecture**:
-  - New tables: `llm_processings`, `prompt_templates`
-  - Environment: `OPENAI_BASE_URL`, `OPENAI_API_KEY`
+計画中の機能:
+- **LLM処理**: ChatGPTに文字起こしを送信して:
+  - 会議要約生成
+  - アクションアイテム抽出
+  - Q&Aフォーマット
+  - カスタムプロンプトテンプレート
+- **アーキテクチャ**:
+  - 新テーブル: `llm_processings`、`prompt_templates`
+  - 環境変数: `OPENAI_BASE_URL`、`OPENAI_API_KEY`
   - API: POST `/api/v1/tasks/{task_id}/llm-process`
-- **User Customization**: Save and reuse custom prompts
+- **ユーザーカスタマイズ**: カスタムプロンプトの保存と再利用
 
-### Phase 12: Real-Time Transcription (Planned)
+### Phase 12: リアルタイム文字起こし(計画中)
 
-**Status**: Documented in `requirement.md` Section 5.1
+**ステータス**: `requirement.md`セクション5.1に記載
 
-Planned features:
-- **WebSocket Streaming**: Real-time audio streaming for live transcription
-- **System Audio Capture**: Virtual audio device or Electron desktop app
-- **Use Cases**: Live meeting transcription, real-time subtitles
+計画中の機能:
+- **WebSocketストリーミング**: ライブ文字起こし用のリアルタイム音声ストリーミング
+- **システムオーディオキャプチャ**: 仮想オーディオデバイスまたはElectronデスクトップアプリ
+- **ユースケース**: ライブ会議の文字起こし、リアルタイム字幕
 
-### Potential Improvements
+### 潜在的な改善
 
-1. **Performance**:
-   - Whisper model preloading (reduce cold start)
-   - Batch processing for multiple tasks
-   - Materialized views for statistics
+1. **パフォーマンス**:
+   - Whisperモデルのプリロード(コールドスタート削減)
+   - 複数タスクのバッチ処理
+   - 統計用のマテリアライズドビュー
 
-2. **Features**:
-   - Multi-language UI (i18n)
-   - Custom vocabulary/terminology support
-   - Export to more formats (DOCX, PDF)
-   - Audio playback in UI with segment sync
+2. **機能**:
+   - 多言語UI(i18n)
+   - カスタム語彙/用語サポート
+   - より多くの形式へのエクスポート(DOCX、PDF)
+   - セグメント同期機能付きUI内音声再生
 
 3. **DevOps**:
-   - Kubernetes deployment support
-   - Prometheus + Grafana monitoring
-   - Automated testing in CI/CD
-   - Docker image optimization
+   - Kubernetesデプロイサポート
+   - Prometheus + Grafana監視
+   - CI/CDでの自動テスト
+   - Dockerイメージ最適化
 
-4. **Security**:
-   - Two-factor authentication (2FA)
-   - Audit logging
-   - IP whitelisting
-   - API key authentication option
+4. **セキュリティ**:
+   - 二要素認証(2FA)
+   - 監査ログ
+   - IPホワイトリスト
+   - APIキー認証オプション
 
 ---
 
-## Contributors
+## 貢献者
 
-### Development Team
+### 開発チーム
 
-- **Project Lead**: [Name]
-- **Backend Development**: [Name]
-- **Frontend Development**: [Name]
+- **プロジェクトリード**: [Name]
+- **バックエンド開発**: [Name]
+- **フロントエンド開発**: [Name]
 - **DevOps**: [Name]
-- **QA/Testing**: [Name]
-- **Documentation**: [Name]
-- **AI/ML Specialist**: [Name]
+- **QA/テスト**: [Name]
+- **ドキュメント**: [Name]
+- **AI/MLスペシャリスト**: [Name]
 
-### Acknowledgments
+### 謝辞
 
-- **OpenAI**: Whisper model
-- **Resemblyzer Team**: Speaker diarization
-- **Open Source Community**: All the amazing libraries and tools
-
----
-
-## Support and Contact
-
-### Getting Help
-
-- **Documentation**: See `/docs` directory
-- **Issues**: Report bugs via [GitHub Issues](https://github.com/your-org/whisper-app/issues)
-- **Support**: Contact your system administrator
-
-### Feedback
-
-We welcome feedback and feature requests. Please contact:
-
-- **Email**: [support@yourcompany.com]
-- **Internal Chat**: [Slack/Teams channel]
+- **OpenAI**: Whisperモデル
+- **Resemblyzerチーム**: 話者分離
+- **オープンソースコミュニティ**: すべての素晴らしいライブラリとツール
 
 ---
 
-## License
+## サポートと連絡先
 
-[Specify your license here - e.g., MIT, Apache 2.0, Proprietary]
+### ヘルプを得る
+
+- **ドキュメント**: `/docs`ディレクトリを参照
+- **問題報告**: [GitHub Issues](https://github.com/your-org/whisper-app/issues)経由でバグを報告
+- **サポート**: システム管理者に連絡
+
+### フィードバック
+
+フィードバックと機能リクエストを歓迎します。以下にお問い合わせください:
+
+- **メール**: [support@yourcompany.com]
+- **社内チャット**: [Slack/Teamsチャンネル]
 
 ---
 
-## Appendix
+## ライセンス
 
-### File Checksums (SHA-256)
+[ライセンスをここに指定 - 例: MIT、Apache 2.0、プロプライエタリ]
 
-To verify integrity of release artifacts:
+---
+
+## 付録
+
+### ファイルチェックサム(SHA-256)
+
+リリース成果物の整合性を検証するには:
 
 ```bash
-# Backend Docker image
+# バックエンドDockerイメージ
 sha256sum whisper-app-backend:1.0.0.tar
 
-# Frontend build
+# フロントエンドビルド
 sha256sum frontend-dist-1.0.0.tar.gz
 
-# Database schema
+# データベーススキーマ
 sha256sum database-schema-1.0.0.sql
 ```
 
-*(Checksums to be generated during release build)*
+*(チェックサムはリリースビルド時に生成されます)*
 
-### Release Artifacts
+### リリース成果物
 
-- `whisper-app-1.0.0-full.tar.gz`: Complete source code and Docker images
-- `whisper-app-1.0.0-docs.zip`: All documentation (PDF format)
-- `whisper-app-1.0.0-docker-images.tar`: Pre-built Docker images
-- `database-schema-1.0.0.sql`: Database schema SQL dump
+- `whisper-app-1.0.0-full.tar.gz`: 完全なソースコードとDockerイメージ
+- `whisper-app-1.0.0-docs.zip`: すべてのドキュメント(PDF形式)
+- `whisper-app-1.0.0-docker-images.tar`: ビルド済みDockerイメージ
+- `database-schema-1.0.0.sql`: データベーススキーマSQLダンプ
 
-### Environment Variables Reference
+### 環境変数リファレンス
 
-See `.env.example` for complete list. Key variables:
+完全なリストについては`.env.example`を参照してください。主要な変数:
 
 ```bash
-# Database
+# データベース
 DATABASE_URL=postgresql+asyncpg://user:pass@postgres:5432/whisper_prod
 
 # Redis
 REDIS_URL=redis://redis:6379
 
-# Authentication
+# 認証
 LDAP_SERVER=ldap://your-ldap-server:389
 LDAP_BASE_DN=dc=example,dc=com
 JWT_SECRET_KEY=<your-secret-key>
 
-# File Storage
+# ファイルストレージ
 MAX_FILE_SIZE=1073741824  # 1GB
 FILE_RETENTION_HOURS=24
 
@@ -892,32 +892,32 @@ SSL_CERTIFICATE_PATH=/path/to/cert.pem
 SSL_KEY_PATH=/path/to/key.pem
 ```
 
-### Database Schema Version
+### データベーススキーマバージョン
 
-- **Current Version**: 98ae830906bf (create_processing_history_table)
-- **Migration Tool**: Alembic 1.12+
-- **Total Migrations**: 5
+- **現在のバージョン**: 98ae830906bf (create_processing_history_table)
+- **マイグレーションツール**: Alembic 1.12+
+- **総マイグレーション数**: 5
   - 001: create_users_table
   - 002: create_tasks_table
   - 003: create_transcriptions_table
   - 004: create_processing_history_table
   - 005: add_performance_indexes
 
-### API Version
+### APIバージョン
 
-- **Current API Version**: v1
-- **Base URL**: `/api/v1`
-- **Versioning Strategy**: URL path versioning
-- **Deprecation Policy**: v1 will be supported for at least 1 year after v2 release
+- **現在のAPIバージョン**: v1
+- **ベースURL**: `/api/v1`
+- **バージョニング戦略**: URLパスバージョニング
+- **非推奨ポリシー**: v1はv2リリース後少なくとも1年間サポートされます
 
 ---
 
-**End of Release Notes**
+**リリースノート終了**
 
-**Thank you for using Whisper App v1.0.0!**
+**Whisper App v1.0.0をご利用いただきありがとうございます!**
 
-For questions or support, please refer to the documentation or contact your system administrator.
+質問またはサポートについては、ドキュメントを参照するか、システム管理者にお問い合わせください。
 
-**Release prepared by**: [Your Name/Team]
-**Release date**: 2025-10-13
-**Next review date**: 2025-11-13 (1 month after release)
+**リリース作成者**: [Your Name/Team]
+**リリース日**: 2025-10-13
+**次回レビュー日**: 2025-11-13 (リリース後1か月)

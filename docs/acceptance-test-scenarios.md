@@ -1,994 +1,994 @@
-# Acceptance Test Scenarios
+# 受け入れテストシナリオ
 
-**Project**: Whisper App - Audio/Video Transcription System
-**Version**: 1.0.0
-**Date**: 2025-10-13
-**Phase**: Phase 10 - Acceptance Testing and Release
+**プロジェクト**: Whisper App - 音声/動画文字起こしシステム
+**バージョン**: 1.0.0
+**日付**: 2025-10-13
+**フェーズ**: Phase 10 - 受け入れテストとリリース
 
-## Table of Contents
+## 目次
 
-1. [Test Objectives](#test-objectives)
-2. [Test Environment](#test-environment)
-3. [Test Criteria](#test-criteria)
-4. [User Workflow Scenarios](#user-workflow-scenarios)
-5. [Functional Test Scenarios](#functional-test-scenarios)
-6. [Performance Test Scenarios](#performance-test-scenarios)
-7. [Security Test Scenarios](#security-test-scenarios)
-8. [Compatibility Test Scenarios](#compatibility-test-scenarios)
-9. [Error Handling Test Scenarios](#error-handling-test-scenarios)
-10. [Test Execution Checklist](#test-execution-checklist)
-
----
-
-## Test Objectives
-
-### Primary Objectives
-1. Verify all functional requirements are met per `docs/requirement.md`
-2. Validate system performance under expected load (20 concurrent users)
-3. Ensure security measures are properly implemented
-4. Confirm user interface is intuitive and responsive
-5. Validate data integrity and accuracy of transcription results
-
-### Success Criteria
-- ✅ All critical user workflows complete successfully
-- ✅ System handles 20 concurrent users without degradation
-- ✅ All security tests pass without vulnerabilities
-- ✅ Cross-browser compatibility confirmed
-- ✅ No critical or high-priority bugs remain
+1. [テスト目的](#テスト目的)
+2. [テスト環境](#テスト環境)
+3. [テスト基準](#テスト基準)
+4. [ユーザーワークフローシナリオ](#ユーザーワークフローシナリオ)
+5. [機能テストシナリオ](#機能テストシナリオ)
+6. [パフォーマンステストシナリオ](#パフォーマンステストシナリオ)
+7. [セキュリティテストシナリオ](#セキュリティテストシナリオ)
+8. [互換性テストシナリオ](#互換性テストシナリオ)
+9. [エラーハンドリングテストシナリオ](#エラーハンドリングテストシナリオ)
+10. [テスト実行チェックリスト](#テスト実行チェックリスト)
 
 ---
 
-## Test Environment
+## テスト目的
 
-### Hardware Requirements
-- **GPU**: NVIDIA GPU with 20GB+ VRAM (for production testing)
-- **CPU**: 8+ cores
-- **RAM**: 32GB+
-- **Storage**: 500GB+ SSD
+### 主要目的
+1. `docs/requirement.md`に記載された全機能要件が満たされていることを検証
+2. 想定される負荷（20人の同時ユーザー）でのシステムパフォーマンスを検証
+3. セキュリティ対策が適切に実装されていることを確認
+4. ユーザーインターフェースが直感的でレスポンシブであることを確認
+5. データ整合性と文字起こし結果の精度を検証
 
-### Software Requirements
-- **OS**: Ubuntu 22.04 LTS or equivalent
-- **Docker**: 24.0+
-- **Docker Compose**: 2.20+
-- **NVIDIA Driver**: 535.xx or later
-- **CUDA**: 11.8 or 12.4
-
-### Test Data
-- **Audio Files**: MP3, WAV, M4A, FLAC, OGG (various sizes: 1MB, 100MB, 500MB, 1GB)
-- **Video Files**: MP4, AVI, MOV, MKV (various sizes: 10MB, 500MB, 1GB)
-- **Sample Content**:
-  - Japanese speech (multiple speakers)
-  - English speech (single speaker)
-  - Mixed language content
-  - Background noise variations
-
-### Test Accounts
-- **Admin User**: `admin` / `admin123` (is_admin=true)
-- **Regular Users**: `user1` / `user123`, `user2` / `user123`
-- **LDAP Test Users**: Configure per environment
+### 成功基準
+- ✅ 全ての重要なユーザーワークフローが正常に完了すること
+- ✅ システムが20人の同時ユーザーを性能劣化なしで処理できること
+- ✅ 全てのセキュリティテストが脆弱性なしで合格すること
+- ✅ クロスブラウザ互換性が確認されていること
+- ✅ クリティカルまたは高優先度のバグが残っていないこと
 
 ---
 
-## Test Criteria
+## テスト環境
 
-### Pass/Fail Criteria
+### ハードウェア要件
+- **GPU**: NVIDIA GPU（20GB以上のVRAM、本番テスト用）
+- **CPU**: 8コア以上
+- **RAM**: 32GB以上
+- **ストレージ**: 500GB以上のSSD
 
-| Severity | Criteria |
+### ソフトウェア要件
+- **OS**: Ubuntu 22.04 LTS または同等
+- **Docker**: 24.0以上
+- **Docker Compose**: 2.20以上
+- **NVIDIA Driver**: 535.xx以降
+- **CUDA**: 11.8または12.4
+
+### テストデータ
+- **音声ファイル**: MP3, WAV, M4A, FLAC, OGG（各種サイズ: 1MB, 100MB, 500MB, 1GB）
+- **動画ファイル**: MP4, AVI, MOV, MKV（各種サイズ: 10MB, 500MB, 1GB）
+- **サンプルコンテンツ**:
+  - 日本語音声（複数話者）
+  - 英語音声（単一話者）
+  - 混合言語コンテンツ
+  - 背景ノイズのバリエーション
+
+### テストアカウント
+- **管理者ユーザー**: `admin` / `admin123` (is_admin=true)
+- **一般ユーザー**: `user1` / `user123`, `user2` / `user123`
+- **LDAPテストユーザー**: 環境に応じて設定
+
+---
+
+## テスト基準
+
+### 合格/不合格基準
+
+| 重要度 | 基準 |
 |----------|----------|
-| **Critical** | No critical bugs (system crash, data loss, security breach) |
-| **High** | ≤ 2 high-priority bugs (major functionality broken) |
-| **Medium** | ≤ 10 medium-priority bugs (minor functionality issues) |
-| **Low** | ≤ 20 low-priority bugs (cosmetic issues, minor UX problems) |
+| **クリティカル** | クリティカルバグなし（システムクラッシュ、データ損失、セキュリティ侵害） |
+| **高** | ≤ 2件の高優先度バグ（主要機能の不具合） |
+| **中** | ≤ 10件の中優先度バグ（軽微な機能の問題） |
+| **低** | ≤ 20件の低優先度バグ（見た目の問題、軽微なUXの問題） |
 
-### Performance Acceptance Criteria
-- API response time: < 200ms (95th percentile)
-- File upload: Support up to 1GB files
-- Transcription processing: Complete within expected time (file duration × 0.5 for GPU)
-- Concurrent users: Support 20 simultaneous users
-- System uptime: 99.9% during test period
-
----
-
-## User Workflow Scenarios
-
-### UAT-001: Complete General User Workflow
-
-**Objective**: Validate the complete workflow for a general user from login to result download.
-
-**Preconditions**:
-- System is running (`docker-compose -f docker-compose.prod.yml up -d`)
-- Test account `user1` / `user123` exists
-- Sample audio file ready (e.g., 24-second MP3 with 2 speakers)
-
-**Test Steps**:
-
-1. **Login**
-   - Navigate to `https://yourdomain.com`
-   - Enter username: `user1`, password: `user123`
-   - Click "ログイン" button
-   - **Expected**: Redirect to dashboard, welcome message displayed
-
-2. **Navigate to Upload**
-   - Click "アップロード" button on dashboard
-   - **Expected**: Upload page displays with drag-and-drop area
-
-3. **Upload Audio File**
-   - Drag and drop sample MP3 file to upload area
-   - Select model: "Large V3 Turbo"
-   - Select language: "日本語"
-   - Enter number of speakers: "2"
-   - Click "アップロード開始" button
-   - **Expected**:
-     - Upload progress bar shows 0% → 100%
-     - Success message displayed
-     - Redirect to task detail page
-
-4. **Monitor Task Progress**
-   - Observe task status polling (every 3 seconds)
-   - **Expected**:
-     - Status changes: "待機中" → "処理中" → "完了"
-     - Progress bar updates: 0% → 10% → 20% → ... → 100%
-     - Processing time displayed
-     - No errors in browser console
-
-5. **View Transcription Results**
-   - Task status shows "完了" (completed)
-   - Transcription viewer automatically appears
-   - **Expected**:
-     - Full transcription text displayed
-     - Segments list shows with timestamps (HH:MM:SS.mmm)
-     - Speaker labels displayed (Speaker 1, Speaker 2)
-     - Edit buttons visible for each segment
-
-6. **Edit Segment**
-   - Click edit icon on first segment
-   - Modify text content
-   - Click "保存" button
-   - **Expected**:
-     - Segment text updates in UI
-     - Success message displayed
-     - Full transcription text refreshes with edit
-
-7. **Download Subtitle Files**
-   - Click "SRT ダウンロード" button
-   - Click "VTT ダウンロード" button
-   - **Expected**:
-     - SRT file downloads with correct format (HH:MM:SS,mmm)
-     - VTT file downloads with correct format (HH:MM:SS.mmm)
-     - Both files contain speaker labels
-     - File content matches edited transcription
-
-8. **View Processing History**
-   - Click "履歴を見る" button
-   - **Expected**:
-     - Processing history page displays
-     - Statistics cards show correct data
-     - Task appears in history table with all details
-
-9. **Logout**
-   - Click "ログアウト" button in header
-   - **Expected**: Redirect to login page, session cleared
-
-**Pass Criteria**: All steps complete without errors, transcription is accurate, files download correctly.
+### パフォーマンス受け入れ基準
+- APIレスポンスタイム: < 200ms（95パーセンタイル）
+- ファイルアップロード: 最大1GBファイルをサポート
+- 文字起こし処理: 想定時間内に完了（ファイル長 × 0.5、GPU使用時）
+- 同時ユーザー数: 20人の同時ユーザーをサポート
+- システム稼働時間: テスト期間中99.9%
 
 ---
 
-### UAT-002: Administrator Workflow
+## ユーザーワークフローシナリオ
 
-**Objective**: Validate administrator-specific functionality.
+### UAT-001: 一般ユーザーの完全ワークフロー
 
-**Preconditions**:
-- Admin account `admin` / `admin123` exists (is_admin=true)
+**目的**: ログインから結果ダウンロードまでの一般ユーザーの完全なワークフローを検証する。
 
-**Test Steps**:
+**前提条件**:
+- システムが稼働中（`docker-compose -f docker-compose.prod.yml up -d`）
+- テストアカウント `user1` / `user123` が存在
+- サンプル音声ファイルが準備済み（例: 24秒のMP3、2人の話者）
 
-1. **Admin Login**
-   - Login as admin user
-   - **Expected**: Dashboard shows admin-specific button "管理者ダッシュボード"
+**テスト手順**:
 
-2. **View Admin Dashboard**
-   - Click "管理者ダッシュボード" button
-   - **Expected**:
-     - System status cards display (GPU info, worker status, queue status)
-     - Overall statistics display (total users, total tasks)
-     - Model usage statistics table
-     - File format statistics table
-     - Hourly processing chart (Chart.js)
+1. **ログイン**
+   - `https://yourdomain.com` にアクセス
+   - ユーザー名: `user1`、パスワード: `user123` を入力
+   - 「ログイン」ボタンをクリック
+   - **期待結果**: ダッシュボードにリダイレクト、ようこそメッセージが表示される
 
-3. **Monitor System Status**
-   - Check GPU memory usage
-   - Check Celery worker status
-   - Check task queue counts (pending, processing)
-   - **Expected**: All metrics display accurate real-time data
+2. **アップロードページへ移動**
+   - ダッシュボードで「アップロード」ボタンをクリック
+   - **期待結果**: ドラッグ&ドロップエリアのあるアップロードページが表示される
 
-4. **View All Users' Tasks**
-   - Navigate to task list
-   - **Expected**: Can see tasks from all users (not just own tasks)
+3. **音声ファイルのアップロード**
+   - サンプルMP3ファイルをアップロードエリアにドラッグ&ドロップ
+   - モデルを選択: "Large V3 Turbo"
+   - 言語を選択: "日本語"
+   - 話者数を入力: "2"
+   - 「アップロード開始」ボタンをクリック
+   - **期待結果**:
+     - アップロード進行状況バーが0% → 100%と表示される
+     - 成功メッセージが表示される
+     - タスク詳細ページにリダイレクトされる
 
-5. **View All Processing History**
-   - Navigate to processing history
-   - **Expected**: Can see history from all users
+4. **タスク進行状況の監視**
+   - タスクステータスのポーリングを観察（3秒ごと）
+   - **期待結果**:
+     - ステータスが変化: "待機中" → "処理中" → "完了"
+     - 進行状況バーが更新: 0% → 10% → 20% → ... → 100%
+     - 処理時間が表示される
+     - ブラウザコンソールにエラーがない
 
-6. **Auto-Refresh Functionality**
-   - Wait 30 seconds on admin dashboard
-   - **Expected**: Dashboard auto-refreshes with updated data
+5. **文字起こし結果の表示**
+   - タスクステータスが「完了」を示す
+   - 文字起こしビューアが自動的に表示される
+   - **期待結果**:
+     - 完全な文字起こしテキストが表示される
+     - セグメントリストがタイムスタンプ付き（HH:MM:SS.mmm）で表示される
+     - 話者ラベル（Speaker 1, Speaker 2）が表示される
+     - 各セグメントに編集ボタンが表示される
 
-**Pass Criteria**: All admin features work correctly, proper access control enforced.
+6. **セグメントの編集**
+   - 最初のセグメントの編集アイコンをクリック
+   - テキスト内容を変更
+   - 「保存」ボタンをクリック
+   - **期待結果**:
+     - セグメントテキストがUIで更新される
+     - 成功メッセージが表示される
+     - 完全な文字起こしテキストが編集内容で更新される
 
----
+7. **字幕ファイルのダウンロード**
+   - 「SRT ダウンロード」ボタンをクリック
+   - 「VTT ダウンロード」ボタンをクリック
+   - **期待結果**:
+     - SRTファイルが正しい形式（HH:MM:SS,mmm）でダウンロードされる
+     - VTTファイルが正しい形式（HH:MM:SS.mmm）でダウンロードされる
+     - 両ファイルに話者ラベルが含まれる
+     - ファイル内容が編集済み文字起こしと一致する
 
-### UAT-003: Multiple File Upload Workflow
+8. **処理履歴の表示**
+   - 「履歴を見る」ボタンをクリック
+   - **期待結果**:
+     - 処理履歴ページが表示される
+     - 統計カードに正しいデータが表示される
+     - タスクが履歴テーブルに全詳細付きで表示される
 
-**Objective**: Test handling of multiple file uploads by single user.
+9. **ログアウト**
+   - ヘッダーの「ログアウト」ボタンをクリック
+   - **期待結果**: ログインページにリダイレクト、セッションがクリアされる
 
-**Test Steps**:
-
-1. Login as `user1`
-2. Upload 3 files sequentially:
-   - File 1: Small MP3 (5MB, model: Tiny)
-   - File 2: Medium MP4 (100MB, model: Large V3 Turbo)
-   - File 3: Large WAV (500MB, model: Large V3)
-3. Monitor all tasks in task list
-4. Verify all tasks complete successfully
-5. Check processing history shows all 3 tasks
-
-**Expected**:
-- All files upload successfully
-- Tasks process in queue order
-- GPU memory managed properly (no OOM errors)
-- Each task completes with correct results
-- History shows all 3 tasks with correct metadata
-
-**Pass Criteria**: All 3 files process successfully without system issues.
-
----
-
-## Functional Test Scenarios
-
-### FT-001: Authentication and Authorization
-
-#### FT-001-1: Valid Login
-- **Input**: Valid username and password
-- **Expected**: Successful login, JWT token issued, redirect to dashboard
-- **Validation**: Check localStorage for auth token, verify API requests include token
-
-#### FT-001-2: Invalid Login
-- **Input**: Invalid username or password
-- **Expected**: Error message "ログインに失敗しました", remain on login page
-- **Validation**: No token stored, no redirect
-
-#### FT-001-3: Session Persistence
-- **Test**: Login, close browser, reopen, navigate to app URL
-- **Expected**: User remains logged in (if token not expired)
-
-#### FT-001-4: Token Expiration
-- **Test**: Wait for access token to expire (15 minutes)
-- **Expected**: Refresh token automatically used, new access token issued
-- **Validation**: Check network tab for `/api/v1/auth/refresh` call
-
-#### FT-001-5: Authorization - General User
-- **Test**: Login as regular user, attempt to access `/admin` route
-- **Expected**: Forbidden error or redirect to dashboard
-- **Validation**: Admin endpoints return 403 status
-
-#### FT-001-6: Authorization - Admin User
-- **Test**: Login as admin, access `/admin` route
-- **Expected**: Admin dashboard displays successfully
-- **Validation**: Admin endpoints return 200 status
+**合格基準**: 全ての手順がエラーなく完了し、文字起こしが正確で、ファイルが正しくダウンロードされること。
 
 ---
 
-### FT-002: File Upload Validation
+### UAT-002: 管理者ワークフロー
 
-#### FT-002-1: Supported Audio Formats
-- **Test**: Upload files in each supported audio format
-- **Formats**: MP3, WAV, M4A, FLAC, OGG
-- **Expected**: All formats accepted and processed successfully
+**目的**: 管理者専用機能を検証する。
 
-#### FT-002-2: Supported Video Formats
-- **Test**: Upload files in each supported video format
-- **Formats**: MP4, AVI, MOV, MKV
-- **Expected**: All formats accepted, audio extracted, transcription successful
+**前提条件**:
+- 管理者アカウント `admin` / `admin123` が存在（is_admin=true）
 
-#### FT-002-3: Unsupported Format
-- **Test**: Attempt to upload .txt, .pdf, .doc files
-- **Expected**: Client-side validation error, file rejected before upload
+**テスト手順**:
 
-#### FT-002-4: File Size Limit - Within Limit
-- **Test**: Upload 1GB file (maximum allowed)
-- **Expected**: Upload succeeds, processing begins
+1. **管理者ログイン**
+   - 管理者ユーザーとしてログイン
+   - **期待結果**: ダッシュボードに管理者専用ボタン「管理者ダッシュボード」が表示される
 
-#### FT-002-5: File Size Limit - Exceeded
-- **Test**: Attempt to upload 1.5GB file
-- **Expected**: Client-side error "ファイルサイズは1GB以下である必要があります"
+2. **管理者ダッシュボードの表示**
+   - 「管理者ダッシュボード」ボタンをクリック
+   - **期待結果**:
+     - システムステータスカードが表示される（GPU情報、ワーカーステータス、キューステータス）
+     - 全体統計が表示される（総ユーザー数、総タスク数）
+     - モデル使用統計テーブル
+     - ファイル形式統計テーブル
+     - 時間別処理チャート（Chart.js）
 
-#### FT-002-6: Drag and Drop Upload
-- **Test**: Drag file from file system, drop into upload area
-- **Expected**: File selected, ready for upload
+3. **システムステータスの監視**
+   - GPUメモリ使用量を確認
+   - Celeryワーカーステータスを確認
+   - タスクキュー数を確認（待機中、処理中）
+   - **期待結果**: 全てのメトリクスが正確なリアルタイムデータを表示する
 
-#### FT-002-7: Click to Upload
-- **Test**: Click upload area, select file from file picker
-- **Expected**: File selected, ready for upload
+4. **全ユーザーのタスクを表示**
+   - タスクリストに移動
+   - **期待結果**: 全ユーザーのタスクを表示できる（自分のタスクだけでなく）
 
----
+5. **全処理履歴を表示**
+   - 処理履歴に移動
+   - **期待結果**: 全ユーザーの履歴を表示できる
 
-### FT-003: Transcription Processing
+6. **自動更新機能**
+   - 管理者ダッシュボードで30秒待機
+   - **期待結果**: ダッシュボードが更新されたデータで自動更新される
 
-#### FT-003-1: Model Selection - Tiny
-- **Test**: Upload audio, select "Tiny" model
-- **Expected**: Fast processing (< 5 seconds for 30-second audio), acceptable accuracy
-
-#### FT-003-2: Model Selection - Large V3
-- **Test**: Upload audio, select "Large V3" model
-- **Expected**: Slower processing, high accuracy
-
-#### FT-003-3: Model Selection - Large V3 Turbo
-- **Test**: Upload audio, select "Large V3 Turbo" model
-- **Expected**: Balanced speed and accuracy
-
-#### FT-003-4: Language Selection - Japanese
-- **Test**: Upload Japanese audio, select "日本語"
-- **Expected**: Accurate Japanese transcription
-
-#### FT-003-5: Language Selection - English
-- **Test**: Upload English audio, select "English"
-- **Expected**: Accurate English transcription
-
-#### FT-003-6: Language Auto-Detection
-- **Test**: Upload mixed-language audio, select "Auto"
-- **Expected**: Whisper detects language automatically, transcription successful
-
-#### FT-003-7: Progress Tracking
-- **Test**: Monitor task progress during processing
-- **Expected**: Progress updates at each stage (10%, 20%, 30%, 50%, 80%, 100%)
-
-#### FT-003-8: Processing Failure Handling
-- **Test**: Upload corrupted audio file or trigger processing error
-- **Expected**: Task status shows "失敗", error message displayed, no system crash
+**合格基準**: 全ての管理者機能が正しく動作し、適切なアクセス制御が実施されていること。
 
 ---
 
-### FT-004: Speaker Diarization
+### UAT-003: 複数ファイルアップロードワークフロー
 
-#### FT-004-1: Specified Speaker Count
-- **Test**: Upload 2-speaker audio, specify "2" speakers
-- **Expected**: Segments labeled with Speaker 1 and Speaker 2 correctly
+**目的**: 単一ユーザーによる複数ファイルアップロードの処理をテストする。
 
-#### FT-004-2: Auto Speaker Detection
-- **Test**: Upload multi-speaker audio, leave speaker count empty
-- **Expected**: System automatically detects number of speakers
+**テスト手順**:
 
-#### FT-004-3: Single Speaker
-- **Test**: Upload single-speaker audio, specify "1" speaker
-- **Expected**: All segments labeled as Speaker 1
+1. `user1` としてログイン
+2. 3つのファイルを順次アップロード:
+   - ファイル1: 小さいMP3（5MB、モデル: Tiny）
+   - ファイル2: 中サイズMP4（100MB、モデル: Large V3 Turbo）
+   - ファイル3: 大きいWAV（500MB、モデル: Large V3）
+3. タスクリストで全タスクを監視
+4. 全タスクが正常に完了することを確認
+5. 処理履歴に3つ全てのタスクが表示されることを確認
 
-#### FT-004-4: Many Speakers
-- **Test**: Upload audio with 5+ speakers, specify count
-- **Expected**: Segments labeled with multiple speaker IDs
+**期待結果**:
+- 全ファイルが正常にアップロードされる
+- タスクがキュー順に処理される
+- GPUメモリが適切に管理される（OOMエラーなし）
+- 各タスクが正しい結果で完了する
+- 履歴に3つ全てのタスクが正しいメタデータで表示される
 
----
-
-### FT-005: Result Editing
-
-#### FT-005-1: Edit Segment Text
-- **Test**: Click edit on segment, modify text, save
-- **Expected**: Text updates in UI and database, full transcription refreshes
-
-#### FT-005-2: Edit Timestamp - Start Time
-- **Test**: Edit segment start time
-- **Expected**: Timestamp updates, validates (start < end)
-
-#### FT-005-3: Edit Timestamp - End Time
-- **Test**: Edit segment end time
-- **Expected**: Timestamp updates, validates (end > start)
-
-#### FT-005-4: Edit Speaker Label
-- **Test**: Change speaker label from "Speaker 1" to "John"
-- **Expected**: Label updates for that segment only
-
-#### FT-005-5: Cancel Edit
-- **Test**: Click edit, modify values, click cancel
-- **Expected**: Changes discarded, original values remain
-
-#### FT-005-6: Edit Permission - Own Task
-- **Test**: User edits their own task's transcription
-- **Expected**: Edit succeeds
-
-#### FT-005-7: Edit Permission - Other User's Task
-- **Test**: User attempts to edit another user's task (if URL known)
-- **Expected**: 403 Forbidden error (unless admin)
+**合格基準**: 3つ全てのファイルがシステム問題なく正常に処理されること。
 
 ---
 
-### FT-006: Subtitle File Generation
+## 機能テストシナリオ
 
-#### FT-006-1: SRT Format Download
-- **Test**: Download SRT subtitle file
-- **Expected**:
-  - File format: `HH:MM:SS,mmm --> HH:MM:SS,mmm`
-  - Speaker labels: `[Speaker 1]`, `[Speaker 2]`
-  - Correct encoding (UTF-8)
+### FT-001: 認証と認可
 
-#### FT-006-2: VTT Format Download
-- **Test**: Download WebVTT subtitle file
-- **Expected**:
-  - File starts with `WEBVTT`
-  - Format: `HH:MM:SS.mmm --> HH:MM:SS.mmm`
-  - Speaker labels: `<v Speaker 1>`, `<v Speaker 2>`
+#### FT-001-1: 有効なログイン
+- **入力**: 有効なユーザー名とパスワード
+- **期待結果**: ログイン成功、JWTトークン発行、ダッシュボードにリダイレクト
+- **検証**: localStorageに認証トークンを確認、APIリクエストにトークンが含まれることを確認
 
-#### FT-006-3: Subtitle Reflects Edits
-- **Test**: Edit transcription, then download subtitle
-- **Expected**: Downloaded file includes edited content
+#### FT-001-2: 無効なログイン
+- **入力**: 無効なユーザー名またはパスワード
+- **期待結果**: エラーメッセージ「ログインに失敗しました」、ログインページにとどまる
+- **検証**: トークンが保存されない、リダイレクトされない
 
----
+#### FT-001-3: セッションの永続性
+- **テスト**: ログイン、ブラウザを閉じる、再度開く、アプリURLに移動
+- **期待結果**: ユーザーがログイン状態を維持している（トークンが期限切れでなければ）
 
-### FT-007: Task Management
+#### FT-001-4: トークンの有効期限
+- **テスト**: アクセストークンの有効期限が切れるまで待つ（15分）
+- **期待結果**: リフレッシュトークンが自動的に使用され、新しいアクセストークンが発行される
+- **検証**: ネットワークタブで `/api/v1/auth/refresh` 呼び出しを確認
 
-#### FT-007-1: Task List - Own Tasks
-- **Test**: Regular user views task list
-- **Expected**: Only sees own tasks, pagination works
+#### FT-001-5: 認可 - 一般ユーザー
+- **テスト**: 一般ユーザーとしてログイン、`/admin` ルートへのアクセスを試みる
+- **期待結果**: Forbiddenエラーまたはダッシュボードへリダイレクト
+- **検証**: 管理者エンドポイントが403ステータスを返す
 
-#### FT-007-2: Task List - All Tasks (Admin)
-- **Test**: Admin views task list
-- **Expected**: Sees all users' tasks
-
-#### FT-007-3: Task Detail View
-- **Test**: Click on task in list
-- **Expected**: Navigates to task detail page with all info
-
-#### FT-007-4: Task Deletion - Own Task
-- **Test**: User deletes own task
-- **Expected**: Task and associated files deleted, removed from list
-
-#### FT-007-5: Task Deletion - Other User's Task
-- **Test**: User attempts to delete another user's task
-- **Expected**: 403 Forbidden error
-
-#### FT-007-6: Task Status Polling
-- **Test**: Monitor network tab during task processing
-- **Expected**: Status endpoint polled every 3 seconds
+#### FT-001-6: 認可 - 管理者ユーザー
+- **テスト**: 管理者としてログイン、`/admin` ルートにアクセス
+- **期待結果**: 管理者ダッシュボードが正常に表示される
+- **検証**: 管理者エンドポイントが200ステータスを返す
 
 ---
 
-### FT-008: Processing History
+### FT-002: ファイルアップロードの検証
 
-#### FT-008-1: History List Display
-- **Test**: View processing history page
-- **Expected**: Table shows all completed tasks with metadata (date, model, format, size, time, GPU usage, status)
+#### FT-002-1: サポートされている音声形式
+- **テスト**: サポートされている各音声形式のファイルをアップロード
+- **形式**: MP3, WAV, M4A, FLAC, OGG
+- **期待結果**: 全形式が受け入れられ、正常に処理される
 
-#### FT-008-2: Statistics Cards
-- **Test**: Check statistics at top of history page
-- **Expected**: Accurate counts for total processed, success rate, average time, total file size
+#### FT-002-2: サポートされている動画形式
+- **テスト**: サポートされている各動画形式のファイルをアップロード
+- **形式**: MP4, AVI, MOV, MKV
+- **期待結果**: 全形式が受け入れられ、音声が抽出され、文字起こしが成功する
 
-#### FT-008-3: History Pagination
-- **Test**: Navigate through history pages
-- **Expected**: Pagination controls work, shows correct page numbers
+#### FT-002-3: サポートされていない形式
+- **テスト**: .txt, .pdf, .doc ファイルのアップロードを試みる
+- **期待結果**: クライアント側の検証エラー、アップロード前にファイルが拒否される
 
-#### FT-008-4: History Filtering
-- **Test**: Filter by success/failed, or by model name
-- **Expected**: Results filtered correctly
+#### FT-002-4: ファイルサイズ制限 - 制限内
+- **テスト**: 1GBファイル（最大許容サイズ）をアップロード
+- **期待結果**: アップロード成功、処理開始
 
----
+#### FT-002-5: ファイルサイズ制限 - 超過
+- **テスト**: 1.5GBファイルのアップロードを試みる
+- **期待結果**: クライアント側エラー「ファイルサイズは1GB以下である必要があります」
 
-### FT-009: Admin Dashboard
+#### FT-002-6: ドラッグ&ドロップアップロード
+- **テスト**: ファイルシステムからファイルをドラッグ、アップロードエリアにドロップ
+- **期待結果**: ファイルが選択され、アップロード準備完了
 
-#### FT-009-1: System Status Display
-- **Test**: View system status cards
-- **Expected**: Shows GPU memory, Celery worker count, queue counts
-
-#### FT-009-2: Overall Statistics
-- **Test**: View overall statistics
-- **Expected**: Shows total users, total tasks, average processing time
-
-#### FT-009-3: Model Usage Statistics
-- **Test**: View model usage table
-- **Expected**: Shows usage count for each Whisper model
-
-#### FT-009-4: File Format Statistics
-- **Test**: View file format table
-- **Expected**: Shows upload count for each file format
-
-#### FT-009-5: Hourly Processing Chart
-- **Test**: View Chart.js graph
-- **Expected**: Bar chart shows processing counts by hour for last 24 hours
-
-#### FT-009-6: Manual Refresh
-- **Test**: Click "更新" button
-- **Expected**: Dashboard data refreshes immediately
-
-#### FT-009-7: Auto Refresh
-- **Test**: Wait 30 seconds without interaction
-- **Expected**: Dashboard auto-refreshes with updated data
+#### FT-002-7: クリックしてアップロード
+- **テスト**: アップロードエリアをクリック、ファイルピッカーからファイルを選択
+- **期待結果**: ファイルが選択され、アップロード準備完了
 
 ---
 
-## Performance Test Scenarios
+### FT-003: 文字起こし処理
 
-### PT-001: Concurrent User Load Test
+#### FT-003-1: モデル選択 - Tiny
+- **テスト**: 音声をアップロード、"Tiny"モデルを選択
+- **期待結果**: 高速処理（30秒音声で5秒未満）、許容できる精度
 
-**Objective**: Validate system handles 20 concurrent users.
+#### FT-003-2: モデル選択 - Large V3
+- **テスト**: 音声をアップロード、"Large V3"モデルを選択
+- **期待結果**: 処理が遅い、高精度
 
-**Test Setup**:
-- Tool: Locust or Apache JMeter
-- Users: 20 virtual users
-- Duration: 30 minutes
-- Scenario: Each user performs login → upload → monitor → logout cycle
+#### FT-003-3: モデル選択 - Large V3 Turbo
+- **テスト**: 音声をアップロード、"Large V3 Turbo"モデルを選択
+- **期待結果**: バランスの取れた速度と精度
 
-**Metrics to Measure**:
-- API response time (p50, p95, p99)
-- Upload throughput (MB/s)
-- Task processing time
-- Error rate
-- System resource usage (CPU, RAM, GPU VRAM)
+#### FT-003-4: 言語選択 - 日本語
+- **テスト**: 日本語音声をアップロード、"日本語"を選択
+- **期待結果**: 正確な日本語文字起こし
 
-**Pass Criteria**:
-- API response time p95 < 500ms
-- Error rate < 1%
-- All tasks complete successfully
-- No system crashes or memory leaks
+#### FT-003-5: 言語選択 - 英語
+- **テスト**: 英語音声をアップロード、"English"を選択
+- **期待結果**: 正確な英語文字起こし
 
----
+#### FT-003-6: 言語自動検出
+- **テスト**: 混合言語音声をアップロード、"Auto"を選択
+- **期待結果**: Whisperが言語を自動検出、文字起こし成功
 
-### PT-002: Large File Upload Test
+#### FT-003-7: 進行状況追跡
+- **テスト**: 処理中のタスク進行状況を監視
+- **期待結果**: 各段階で進行状況が更新される（10%, 20%, 30%, 50%, 80%, 100%）
 
-**Test**: Upload 1GB video file
-
-**Expected**:
-- Upload completes within reasonable time (depends on network)
-- No timeout errors
-- Memory usage remains stable
-- Processing completes successfully
-
-**Pass Criteria**: File uploads and processes without errors.
+#### FT-003-8: 処理失敗のハンドリング
+- **テスト**: 破損した音声ファイルをアップロードまたは処理エラーを発生させる
+- **期待結果**: タスクステータスが「失敗」を示す、エラーメッセージが表示される、システムクラッシュなし
 
 ---
 
-### PT-003: GPU Memory Management Test
+### FT-004: 話者分離
 
-**Test**: Queue multiple large model tasks (Large V3) exceeding GPU memory
+#### FT-004-1: 指定された話者数
+- **テスト**: 2人の話者の音声をアップロード、話者数"2"を指定
+- **期待結果**: セグメントがSpeaker 1とSpeaker 2で正しくラベル付けされる
 
-**Expected**:
-- Tasks queue properly
-- GPU memory monitored before task start
-- Tasks execute sequentially without OOM errors
-- No system crash
+#### FT-004-2: 自動話者検出
+- **テスト**: 複数話者の音声をアップロード、話者数を空にする
+- **期待結果**: システムが話者数を自動検出する
 
-**Pass Criteria**: All tasks complete, GPU memory never exceeds available VRAM.
+#### FT-004-3: 単一話者
+- **テスト**: 単一話者の音声をアップロード、話者数"1"を指定
+- **期待結果**: 全セグメントがSpeaker 1としてラベル付けされる
 
----
-
-### PT-004: Database Query Performance Test
-
-**Objective**: Validate database indexes and caching work effectively.
-
-**Test Steps**:
-1. Populate database with 10,000 tasks and 5,000 processing history records
-2. Measure query performance for:
-   - Task list with pagination
-   - Processing history with filters
-   - Admin dashboard statistics
-
-**Pass Criteria**:
-- Task list query < 100ms
-- History query < 150ms
-- Dashboard stats query < 50ms (with Redis cache hit)
-- Dashboard stats query < 500ms (cache miss)
+#### FT-004-4: 多数の話者
+- **テスト**: 5人以上の話者の音声をアップロード、数を指定
+- **期待結果**: セグメントが複数の話者IDでラベル付けされる
 
 ---
 
-### PT-005: Transcription Processing Speed Test
+### FT-005: 結果の編集
 
-**Test**: Measure transcription speed for various file sizes and models
+#### FT-005-1: セグメントテキストの編集
+- **テスト**: セグメントの編集をクリック、テキストを変更、保存
+- **期待結果**: テキストがUIとデータベースで更新される、完全な文字起こしが更新される
 
-**Test Matrix**:
+#### FT-005-2: タイムスタンプの編集 - 開始時刻
+- **テスト**: セグメントの開始時刻を編集
+- **期待結果**: タイムスタンプが更新される、検証される（start < end）
 
-| File Duration | File Size | Model | Expected Time (GPU) |
+#### FT-005-3: タイムスタンプの編集 - 終了時刻
+- **テスト**: セグメントの終了時刻を編集
+- **期待結果**: タイムスタンプが更新される、検証される（end > start）
+
+#### FT-005-4: 話者ラベルの編集
+- **テスト**: 話者ラベルを"Speaker 1"から"John"に変更
+- **期待結果**: そのセグメントのみラベルが更新される
+
+#### FT-005-5: 編集のキャンセル
+- **テスト**: 編集をクリック、値を変更、キャンセルをクリック
+- **期待結果**: 変更が破棄される、元の値が残る
+
+#### FT-005-6: 編集権限 - 自分のタスク
+- **テスト**: ユーザーが自分のタスクの文字起こしを編集
+- **期待結果**: 編集が成功する
+
+#### FT-005-7: 編集権限 - 他ユーザーのタスク
+- **テスト**: ユーザーが他ユーザーのタスクの編集を試みる（URLが既知の場合）
+- **期待結果**: 403 Forbiddenエラー（管理者でない限り）
+
+---
+
+### FT-006: 字幕ファイル生成
+
+#### FT-006-1: SRT形式ダウンロード
+- **テスト**: SRT字幕ファイルをダウンロード
+- **期待結果**:
+  - ファイル形式: `HH:MM:SS,mmm --> HH:MM:SS,mmm`
+  - 話者ラベル: `[Speaker 1]`, `[Speaker 2]`
+  - 正しいエンコーディング（UTF-8）
+
+#### FT-006-2: VTT形式ダウンロード
+- **テスト**: WebVTT字幕ファイルをダウンロード
+- **期待結果**:
+  - ファイルが`WEBVTT`で始まる
+  - 形式: `HH:MM:SS.mmm --> HH:MM:SS.mmm`
+  - 話者ラベル: `<v Speaker 1>`, `<v Speaker 2>`
+
+#### FT-006-3: 字幕が編集を反映
+- **テスト**: 文字起こしを編集、その後字幕をダウンロード
+- **期待結果**: ダウンロードされたファイルに編集内容が含まれる
+
+---
+
+### FT-007: タスク管理
+
+#### FT-007-1: タスクリスト - 自分のタスク
+- **テスト**: 一般ユーザーがタスクリストを表示
+- **期待結果**: 自分のタスクのみ表示される、ページネーションが機能する
+
+#### FT-007-2: タスクリスト - 全タスク（管理者）
+- **テスト**: 管理者がタスクリストを表示
+- **期待結果**: 全ユーザーのタスクが表示される
+
+#### FT-007-3: タスク詳細表示
+- **テスト**: リスト内のタスクをクリック
+- **期待結果**: 全情報付きのタスク詳細ページに移動する
+
+#### FT-007-4: タスク削除 - 自分のタスク
+- **テスト**: ユーザーが自分のタスクを削除
+- **期待結果**: タスクと関連ファイルが削除される、リストから削除される
+
+#### FT-007-5: タスク削除 - 他ユーザーのタスク
+- **テスト**: ユーザーが他ユーザーのタスク削除を試みる
+- **期待結果**: 403 Forbiddenエラー
+
+#### FT-007-6: タスクステータスのポーリング
+- **テスト**: タスク処理中にネットワークタブを監視
+- **期待結果**: ステータスエンドポイントが3秒ごとにポーリングされる
+
+---
+
+### FT-008: 処理履歴
+
+#### FT-008-1: 履歴リスト表示
+- **テスト**: 処理履歴ページを表示
+- **期待結果**: テーブルに全完了タスクがメタデータ付きで表示される（日付、モデル、形式、サイズ、時間、GPU使用率、ステータス）
+
+#### FT-008-2: 統計カード
+- **テスト**: 履歴ページ上部の統計を確認
+- **期待結果**: 総処理数、成功率、平均時間、総ファイルサイズの正確なカウント
+
+#### FT-008-3: 履歴のページネーション
+- **テスト**: 履歴ページを移動
+- **期待結果**: ページネーションコントロールが機能する、正しいページ番号を表示する
+
+#### FT-008-4: 履歴のフィルタリング
+- **テスト**: 成功/失敗でフィルタ、またはモデル名でフィルタ
+- **期待結果**: 結果が正しくフィルタされる
+
+---
+
+### FT-009: 管理者ダッシュボード
+
+#### FT-009-1: システムステータス表示
+- **テスト**: システムステータスカードを表示
+- **期待結果**: GPUメモリ、Celeryワーカー数、キュー数を表示する
+
+#### FT-009-2: 全体統計
+- **テスト**: 全体統計を表示
+- **期待結果**: 総ユーザー数、総タスク数、平均処理時間を表示する
+
+#### FT-009-3: モデル使用統計
+- **テスト**: モデル使用テーブルを表示
+- **期待結果**: 各Whisperモデルの使用回数を表示する
+
+#### FT-009-4: ファイル形式統計
+- **テスト**: ファイル形式テーブルを表示
+- **期待結果**: 各ファイル形式のアップロード回数を表示する
+
+#### FT-009-5: 時間別処理チャート
+- **テスト**: Chart.jsグラフを表示
+- **期待結果**: 棒グラフが過去24時間の時間別処理数を表示する
+
+#### FT-009-6: 手動更新
+- **テスト**: 「更新」ボタンをクリック
+- **期待結果**: ダッシュボードデータが即座に更新される
+
+#### FT-009-7: 自動更新
+- **テスト**: 操作なしで30秒待機
+- **期待結果**: ダッシュボードが更新されたデータで自動更新される
+
+---
+
+## パフォーマンステストシナリオ
+
+### PT-001: 同時ユーザー負荷テスト
+
+**目的**: システムが20人の同時ユーザーを処理できることを検証する。
+
+**テスト設定**:
+- ツール: LocustまたはApache JMeter
+- ユーザー数: 20仮想ユーザー
+- 期間: 30分
+- シナリオ: 各ユーザーがログイン → アップロード → 監視 → ログアウトのサイクルを実行
+
+**測定するメトリクス**:
+- APIレスポンスタイム（p50, p95, p99）
+- アップロードスループット（MB/s）
+- タスク処理時間
+- エラー率
+- システムリソース使用率（CPU、RAM、GPU VRAM）
+
+**合格基準**:
+- APIレスポンスタイム p95 < 500ms
+- エラー率 < 1%
+- 全タスクが正常に完了する
+- システムクラッシュやメモリリークなし
+
+---
+
+### PT-002: 大容量ファイルアップロードテスト
+
+**テスト**: 1GB動画ファイルをアップロード
+
+**期待結果**:
+- アップロードが妥当な時間内に完了する（ネットワークに依存）
+- タイムアウトエラーなし
+- メモリ使用量が安定している
+- 処理が正常に完了する
+
+**合格基準**: ファイルがエラーなくアップロードされ、処理されること。
+
+---
+
+### PT-003: GPUメモリ管理テスト
+
+**テスト**: GPUメモリを超える複数の大きなモデルタスク（Large V3）をキューに入れる
+
+**期待結果**:
+- タスクが適切にキューイングされる
+- タスク開始前にGPUメモリが監視される
+- タスクがOOMエラーなしで順次実行される
+- システムクラッシュなし
+
+**合格基準**: 全タスクが完了し、GPUメモリが利用可能なVRAMを超えないこと。
+
+---
+
+### PT-004: データベースクエリパフォーマンステスト
+
+**目的**: データベースインデックスとキャッシュが効果的に機能することを検証する。
+
+**テスト手順**:
+1. データベースに10,000タスクと5,000処理履歴レコードを投入
+2. 以下のクエリパフォーマンスを測定:
+   - ページネーション付きタスクリスト
+   - フィルタ付き処理履歴
+   - 管理者ダッシュボード統計
+
+**合格基準**:
+- タスクリストクエリ < 100ms
+- 履歴クエリ < 150ms
+- ダッシュボード統計クエリ < 50ms（Redisキャッシュヒット時）
+- ダッシュボード統計クエリ < 500ms（キャッシュミス時）
+
+---
+
+### PT-005: 文字起こし処理速度テスト
+
+**テスト**: 各種ファイルサイズとモデルでの文字起こし速度を測定
+
+**テストマトリクス**:
+
+| ファイル長 | ファイルサイズ | モデル | 期待時間（GPU使用時） |
 |--------------|-----------|-------|---------------------|
-| 30 seconds | 5MB | Tiny | < 10 seconds |
-| 30 seconds | 5MB | Large V3 Turbo | < 20 seconds |
-| 5 minutes | 50MB | Large V3 Turbo | < 3 minutes |
-| 30 minutes | 300MB | Large V3 | < 20 minutes |
+| 30秒 | 5MB | Tiny | < 10秒 |
+| 30秒 | 5MB | Large V3 Turbo | < 20秒 |
+| 5分 | 50MB | Large V3 Turbo | < 3分 |
+| 30分 | 300MB | Large V3 | < 20分 |
 
-**Pass Criteria**: Processing times within expected ranges (±20%).
-
----
-
-## Security Test Scenarios
-
-### ST-001: Authentication Security
-
-#### ST-001-1: SQL Injection in Login
-- **Test**: Enter SQL injection payloads in username/password fields
-- **Examples**: `' OR '1'='1`, `admin'--`, `'; DROP TABLE users--`
-- **Expected**: All attempts rejected, no SQL execution, proper error handling
-
-#### ST-001-2: Brute Force Protection
-- **Test**: Attempt 50 failed login attempts rapidly
-- **Expected**: Rate limiting applies, temporary lockout or CAPTCHA challenge
-
-#### ST-001-3: JWT Token Manipulation
-- **Test**: Modify JWT token payload (e.g., change user_id or is_admin flag)
-- **Expected**: Token validation fails, 401 Unauthorized error
-
-#### ST-001-4: Expired Token Handling
-- **Test**: Use expired access token for API request
-- **Expected**: 401 Unauthorized, client should refresh token
-
-#### ST-001-5: Session Hijacking Prevention
-- **Test**: Copy JWT token to different browser/machine
-- **Expected**: Token works (stateless), but should only work until expiration
+**合格基準**: 処理時間が期待範囲内（±20%）であること。
 
 ---
 
-### ST-002: Authorization Security
+## セキュリティテストシナリオ
 
-#### ST-002-1: Horizontal Privilege Escalation
-- **Test**: User1 attempts to access User2's task via direct URL
-- **Expected**: 403 Forbidden error, no data leaked
+### ST-001: 認証セキュリティ
 
-#### ST-002-2: Vertical Privilege Escalation
-- **Test**: Regular user attempts to access admin endpoints
-- **Expected**: 403 Forbidden error
+#### ST-001-1: ログインでのSQLインジェクション
+- **テスト**: ユーザー名/パスワードフィールドにSQLインジェクションペイロードを入力
+- **例**: `' OR '1'='1`, `admin'--`, `'; DROP TABLE users--`
+- **期待結果**: 全ての試行が拒否される、SQL実行なし、適切なエラーハンドリング
 
-#### ST-002-3: API Endpoint Enumeration
-- **Test**: Attempt to access undocumented or internal endpoints
-- **Expected**: 404 Not Found or 403 Forbidden, no information disclosure
+#### ST-001-2: ブルートフォース保護
+- **テスト**: 50回のログイン失敗を急速に試行
+- **期待結果**: レート制限が適用される、一時的なロックアウトまたはCAPTCHAチャレンジ
 
----
+#### ST-001-3: JWTトークン操作
+- **テスト**: JWTトークンペイロードを変更（例: user_idまたはis_adminフラグを変更）
+- **期待結果**: トークン検証が失敗する、401 Unauthorizedエラー
 
-### ST-003: File Upload Security
+#### ST-001-4: 期限切れトークンのハンドリング
+- **テスト**: 期限切れアクセストークンでAPIリクエストを実行
+- **期待結果**: 401 Unauthorized、クライアントがトークンを更新すべき
 
-#### ST-003-1: Malicious File Upload - Executable
-- **Test**: Attempt to upload .exe, .sh, .bat files
-- **Expected**: Rejected by file type validation
-
-#### ST-003-2: Malicious File Upload - Path Traversal
-- **Test**: Upload file with name like `../../etc/passwd.mp3`
-- **Expected**: File name sanitized, no path traversal
-
-#### ST-003-3: File Size Bomb
-- **Test**: Upload file with misleading header (claims 10MB, actually 2GB)
-- **Expected**: Upload rejected once true size detected
-
-#### ST-003-4: Malformed Media File
-- **Test**: Upload file with valid extension but corrupted/malicious content
-- **Expected**: FFmpeg or Whisper fails gracefully, error logged, no system compromise
+#### ST-001-5: セッションハイジャック防止
+- **テスト**: JWTトークンを別のブラウザ/マシンにコピー
+- **期待結果**: トークンが機能する（ステートレス）、ただし有効期限まで
 
 ---
 
-### ST-004: Cross-Site Scripting (XSS)
+### ST-002: 認可セキュリティ
 
-#### ST-004-1: Stored XSS in Transcription
-- **Test**: Edit segment text to include `<script>alert('XSS')</script>`
-- **Expected**: Text rendered as plain text, no script execution
+#### ST-002-1: 水平権限昇格
+- **テスト**: User1がUser2のタスクに直接URLでアクセスを試みる
+- **期待結果**: 403 Forbiddenエラー、データ漏洩なし
 
-#### ST-004-2: Reflected XSS in URL Parameters
-- **Test**: Add script tags to URL parameters
-- **Expected**: Parameters sanitized, no script execution
+#### ST-002-2: 垂直権限昇格
+- **テスト**: 一般ユーザーが管理者エンドポイントへのアクセスを試みる
+- **期待結果**: 403 Forbiddenエラー
 
----
-
-### ST-005: Cross-Site Request Forgery (CSRF)
-
-**Test**: Create malicious page that attempts to trigger API requests while user is authenticated
-
-**Expected**:
-- Requests from different origin blocked by CORS
-- No state-changing operations succeed without proper authentication
+#### ST-002-3: APIエンドポイント列挙
+- **テスト**: 未文書化または内部エンドポイントへのアクセスを試みる
+- **期待結果**: 404 Not Foundまたは403 Forbidden、情報開示なし
 
 ---
 
-### ST-006: Information Disclosure
+### ST-003: ファイルアップロードセキュリティ
 
-#### ST-006-1: Error Messages
-- **Test**: Trigger various errors, check error messages
-- **Expected**: No stack traces, database info, or system paths leaked to client
+#### ST-003-1: 悪意あるファイルアップロード - 実行可能ファイル
+- **テスト**: .exe, .sh, .bat ファイルのアップロードを試みる
+- **期待結果**: ファイルタイプ検証により拒否される
 
-#### ST-006-2: API Endpoint Documentation
-- **Test**: Access `/docs` and `/redoc` endpoints
-- **Expected**:
-  - Should be disabled in production or require authentication
-  - If enabled, should not expose sensitive implementation details
+#### ST-003-2: 悪意あるファイルアップロード - パストラバーサル
+- **テスト**: `../../etc/passwd.mp3` のようなファイル名でアップロード
+- **期待結果**: ファイル名がサニタイズされる、パストラバーサルなし
+
+#### ST-003-3: ファイルサイズ爆弾
+- **テスト**: 誤解を招くヘッダーのファイル（10MBを主張するが実際は2GB）をアップロード
+- **期待結果**: 真のサイズが検出されたらアップロードが拒否される
+
+#### ST-003-4: 不正なメディアファイル
+- **テスト**: 有効な拡張子だが破損/悪意のある内容のファイルをアップロード
+- **期待結果**: FFmpegまたはWhisperが適切に失敗する、エラーがログされる、システム侵害なし
 
 ---
 
-## Compatibility Test Scenarios
+### ST-004: クロスサイトスクリプティング（XSS）
 
-### CT-001: Browser Compatibility
+#### ST-004-1: 文字起こしでの保存型XSS
+- **テスト**: セグメントテキストを編集して `<script>alert('XSS')</script>` を含める
+- **期待結果**: テキストがプレーンテキストとしてレンダリングされる、スクリプト実行なし
 
-**Test Matrix**:
+#### ST-004-2: URLパラメータでの反射型XSS
+- **テスト**: URLパラメータにスクリプトタグを追加
+- **期待結果**: パラメータがサニタイズされる、スクリプト実行なし
 
-| Browser | Version | Platform | Test Result |
+---
+
+### ST-005: クロスサイトリクエストフォージェリ（CSRF）
+
+**テスト**: ユーザーが認証されている間にAPIリクエストをトリガーする悪意のあるページを作成
+
+**期待結果**:
+- 異なるオリジンからのリクエストがCORSによりブロックされる
+- 適切な認証なしに状態変更操作が成功しない
+
+---
+
+### ST-006: 情報開示
+
+#### ST-006-1: エラーメッセージ
+- **テスト**: 各種エラーをトリガー、エラーメッセージを確認
+- **期待結果**: スタックトレース、データベース情報、システムパスがクライアントに漏洩しない
+
+#### ST-006-2: APIエンドポイントドキュメント
+- **テスト**: `/docs` および `/redoc` エンドポイントにアクセス
+- **期待結果**:
+  - 本番環境では無効化または認証が必要
+  - 有効な場合、機密な実装詳細を公開しない
+
+---
+
+## 互換性テストシナリオ
+
+### CT-001: ブラウザ互換性
+
+**テストマトリクス**:
+
+| ブラウザ | バージョン | プラットフォーム | テスト結果 |
 |---------|---------|----------|-------------|
-| Chrome | Latest | Windows 10 | ✅ |
-| Chrome | Latest | macOS | ✅ |
-| Chrome | Latest | Linux | ✅ |
-| Firefox | Latest | Windows 10 | ✅ |
-| Firefox | Latest | macOS | ✅ |
-| Safari | Latest | macOS | ✅ |
-| Safari | Latest | iOS | ✅ |
-| Edge | Latest | Windows 10 | ✅ |
+| Chrome | 最新 | Windows 10 | ✅ |
+| Chrome | 最新 | macOS | ✅ |
+| Chrome | 最新 | Linux | ✅ |
+| Firefox | 最新 | Windows 10 | ✅ |
+| Firefox | 最新 | macOS | ✅ |
+| Safari | 最新 | macOS | ✅ |
+| Safari | 最新 | iOS | ✅ |
+| Edge | 最新 | Windows 10 | ✅ |
 
-**Test Scenarios for Each Browser**:
-1. Login and logout
-2. File upload (drag-and-drop and click)
-3. View transcription results
-4. Edit segment
-5. Download subtitle files
-6. View processing history
-7. View admin dashboard (admin only)
+**各ブラウザでのテストシナリオ**:
+1. ログインとログアウト
+2. ファイルアップロード（ドラッグ&ドロップとクリック）
+3. 文字起こし結果の表示
+4. セグメントの編集
+5. 字幕ファイルのダウンロード
+6. 処理履歴の表示
+7. 管理者ダッシュボードの表示（管理者のみ）
 
-**Pass Criteria**: All core functionality works without errors in each browser.
+**合格基準**: 各ブラウザで全てのコア機能がエラーなく動作すること。
 
 ---
 
-### CT-002: Responsive Design
+### CT-002: レスポンシブデザイン
 
-**Test Viewports**:
+**テストビューポート**:
 
-| Device | Resolution | Orientation |
+| デバイス | 解像度 | 向き |
 |--------|-----------|-------------|
-| Desktop | 1920x1080 | Landscape |
-| Laptop | 1366x768 | Landscape |
-| Tablet (iPad) | 1024x768 | Landscape |
-| Tablet (iPad) | 768x1024 | Portrait |
-| Mobile (iPhone) | 390x844 | Portrait |
-| Mobile (Android) | 360x640 | Portrait |
+| デスクトップ | 1920x1080 | 横 |
+| ノートPC | 1366x768 | 横 |
+| タブレット（iPad） | 1024x768 | 横 |
+| タブレット（iPad） | 768x1024 | 縦 |
+| モバイル（iPhone） | 390x844 | 縦 |
+| モバイル（Android） | 360x640 | 縦 |
 
-**Test Cases**:
-- Navigation menu adapts to mobile (hamburger menu)
-- Tables responsive or horizontally scrollable
-- Forms stack vertically on mobile
-- Buttons and touch targets ≥ 44x44px on mobile
-- Text remains readable without horizontal scroll
+**テストケース**:
+- ナビゲーションメニューがモバイルに適応する（ハンバーガーメニュー）
+- テーブルがレスポンシブまたは水平スクロール可能
+- フォームがモバイルで垂直に積み重なる
+- ボタンとタッチターゲットがモバイルで≥ 44x44px
+- テキストが水平スクロールなしで読める
 
-**Pass Criteria**: UI is usable and functional on all tested viewports.
+**合格基準**: 全てのテストビューポートでUIが使用可能で機能的であること。
 
 ---
 
-### CT-003: Network Conditions
+### CT-003: ネットワーク状態
 
-**Test Scenarios**:
+**テストシナリオ**:
 
-| Condition | Bandwidth | Latency | Test Result |
+| 状態 | 帯域幅 | レイテンシ | テスト結果 |
 |-----------|-----------|---------|-------------|
 | Fast 3G | 1.6 Mbps | 150ms | |
 | Slow 3G | 400 Kbps | 400ms | |
-| Offline | 0 | - | |
+| オフライン | 0 | - | |
 
-**Test Cases**:
-- File upload on slow connection (progress tracking works)
-- Task status polling on high latency (no errors)
-- Offline behavior (graceful error messages)
+**テストケース**:
+- 低速接続でのファイルアップロード（進行状況追跡が機能する）
+- 高レイテンシでのタスクステータスポーリング（エラーなし）
+- オフライン動作（適切なエラーメッセージ）
 
-**Pass Criteria**: App remains functional on slow connections, provides clear feedback.
-
----
-
-## Error Handling Test Scenarios
-
-### EH-001: Network Errors
-
-#### EH-001-1: Upload Interruption
-- **Test**: Start file upload, disconnect network mid-upload
-- **Expected**: Error message displayed, user can retry
-
-#### EH-001-2: API Request Timeout
-- **Test**: Trigger slow API response (using network throttling)
-- **Expected**: Request times out gracefully, error message shown
-
-#### EH-001-3: WebSocket/Polling Failure
-- **Test**: Block status polling endpoint
-- **Expected**: Polling retries with backoff, error shown if persistent failure
+**合格基準**: アプリが低速接続でも機能し、明確なフィードバックを提供すること。
 
 ---
 
-### EH-002: Processing Errors
+## エラーハンドリングテストシナリオ
 
-#### EH-002-1: Audio Extraction Failure
-- **Test**: Upload video with no audio track
-- **Expected**: Task fails with error "音声トラックが見つかりません", error logged
+### EH-001: ネットワークエラー
 
-#### EH-002-2: Whisper Model Loading Failure
-- **Test**: Simulate model file corruption or missing
-- **Expected**: Task fails with error, system remains operational
+#### EH-001-1: アップロードの中断
+- **テスト**: ファイルアップロードを開始、アップロード中にネットワークを切断
+- **期待結果**: エラーメッセージが表示される、ユーザーが再試行できる
+
+#### EH-001-2: APIリクエストタイムアウト
+- **テスト**: 遅いAPIレスポンスをトリガー（ネットワークスロットリング使用）
+- **期待結果**: リクエストが適切にタイムアウトする、エラーメッセージが表示される
+
+#### EH-001-3: WebSocket/ポーリング失敗
+- **テスト**: ステータスポーリングエンドポイントをブロック
+- **期待結果**: ポーリングがバックオフで再試行される、持続的な失敗の場合エラーが表示される
+
+---
+
+### EH-002: 処理エラー
+
+#### EH-002-1: 音声抽出失敗
+- **テスト**: 音声トラックのない動画をアップロード
+- **期待結果**: タスクがエラー「音声トラックが見つかりません」で失敗する、エラーがログされる
+
+#### EH-002-2: Whisperモデル読み込み失敗
+- **テスト**: モデルファイルの破損または欠落をシミュレート
+- **期待結果**: タスクがエラーで失敗する、システムが動作可能のまま
 
 #### EH-002-3: GPU Out of Memory
-- **Test**: Queue many large model tasks simultaneously
-- **Expected**: Tasks queue properly, error if OOM occurs, system recovers
+- **テスト**: 同時に多数の大きなモデルタスクをキューに入れる
+- **期待結果**: タスクが適切にキューイングされる、OOMが発生した場合エラー、システムが回復する
 
-#### EH-002-4: Celery Worker Crash
-- **Test**: Stop Celery worker during task processing
-- **Expected**: Task marked as failed after timeout, can be retried
-
----
-
-### EH-003: Database Errors
-
-#### EH-003-1: Database Connection Lost
-- **Test**: Stop PostgreSQL during API request
-- **Expected**: 503 Service Unavailable error, system recovers when DB restarts
-
-#### EH-003-2: Redis Connection Lost
-- **Test**: Stop Redis during task queue operation
-- **Expected**: Tasks fail to queue, error message shown, system recovers when Redis restarts
+#### EH-002-4: Celeryワーカークラッシュ
+- **テスト**: タスク処理中にCeleryワーカーを停止
+- **期待結果**: タスクがタイムアウト後に失敗とマークされる、再試行可能
 
 ---
 
-### EH-004: Validation Errors
+### EH-003: データベースエラー
 
-#### EH-004-1: Invalid File Format
-- **Test**: Rename .txt file to .mp3 and upload
-- **Expected**: Validation error during processing, task fails with clear message
+#### EH-003-1: データベース接続喪失
+- **テスト**: APIリクエスト中にPostgreSQLを停止
+- **期待結果**: 503 Service Unavailableエラー、DB再起動時にシステムが回復する
 
-#### EH-004-2: Invalid Timestamp Edit
-- **Test**: Edit segment with end time < start time
-- **Expected**: Client-side validation error before API call
-
-#### EH-004-3: Invalid Speaker Count
-- **Test**: Enter speaker count = 0 or > 10
-- **Expected**: Form validation error, cannot submit
+#### EH-003-2: Redis接続喪失
+- **テスト**: タスクキュー操作中にRedisを停止
+- **期待結果**: タスクがキューイングに失敗する、エラーメッセージが表示される、Redis再起動時にシステムが回復する
 
 ---
 
-## Test Execution Checklist
+### EH-004: 検証エラー
 
-### Pre-Test Setup
+#### EH-004-1: 無効なファイル形式
+- **テスト**: .txtファイルを.mp3にリネームしてアップロード
+- **期待結果**: 処理中に検証エラー、タスクが明確なメッセージで失敗する
 
-- [ ] Production environment deployed (`docker-compose -f docker-compose.prod.yml up -d`)
-- [ ] All services healthy (backend, celery-worker, postgres, redis, nginx)
-- [ ] Test accounts created and verified
-- [ ] Test data prepared (audio/video files of various sizes and formats)
-- [ ] GPU available and properly configured
-- [ ] SSL certificate installed and valid
-- [ ] Monitoring tools configured (optional: Grafana, Prometheus)
+#### EH-004-2: 無効なタイムスタンプ編集
+- **テスト**: 終了時刻 < 開始時刻でセグメントを編集
+- **期待結果**: API呼び出し前にクライアント側検証エラー
 
-### Test Execution
-
-#### Day 1: User Workflow Testing
-- [ ] UAT-001: Complete General User Workflow
-- [ ] UAT-002: Administrator Workflow
-- [ ] UAT-003: Multiple File Upload Workflow
-- [ ] Document any bugs found with severity labels
-
-#### Day 2: Functional Testing (Part 1)
-- [ ] FT-001: Authentication and Authorization (all sub-tests)
-- [ ] FT-002: File Upload Validation (all sub-tests)
-- [ ] FT-003: Transcription Processing (all sub-tests)
-- [ ] Document bugs
-
-#### Day 3: Functional Testing (Part 2)
-- [ ] FT-004: Speaker Diarization (all sub-tests)
-- [ ] FT-005: Result Editing (all sub-tests)
-- [ ] FT-006: Subtitle File Generation (all sub-tests)
-- [ ] FT-007: Task Management (all sub-tests)
-- [ ] FT-008: Processing History (all sub-tests)
-- [ ] FT-009: Admin Dashboard (all sub-tests)
-- [ ] Document bugs
-
-#### Day 4: Performance Testing
-- [ ] PT-001: Concurrent User Load Test (20 users, 30 minutes)
-- [ ] PT-002: Large File Upload Test (1GB file)
-- [ ] PT-003: GPU Memory Management Test
-- [ ] PT-004: Database Query Performance Test
-- [ ] PT-005: Transcription Processing Speed Test
-- [ ] Record performance metrics
-
-#### Day 5: Security Testing
-- [ ] ST-001: Authentication Security (all sub-tests)
-- [ ] ST-002: Authorization Security (all sub-tests)
-- [ ] ST-003: File Upload Security (all sub-tests)
-- [ ] ST-004: Cross-Site Scripting (XSS)
-- [ ] ST-005: Cross-Site Request Forgery (CSRF)
-- [ ] ST-006: Information Disclosure
-- [ ] Document security findings
-
-#### Day 6: Compatibility and Error Handling
-- [ ] CT-001: Browser Compatibility (all browsers)
-- [ ] CT-002: Responsive Design (all viewports)
-- [ ] CT-003: Network Conditions
-- [ ] EH-001: Network Errors (all sub-tests)
-- [ ] EH-002: Processing Errors (all sub-tests)
-- [ ] EH-003: Database Errors (all sub-tests)
-- [ ] EH-004: Validation Errors (all sub-tests)
-- [ ] Document compatibility issues and error handling gaps
-
-#### Day 7: Bug Fix and Regression Testing
-- [ ] Review all documented bugs
-- [ ] Prioritize bugs (Critical, High, Medium, Low)
-- [ ] Fix critical and high-priority bugs
-- [ ] Re-run affected test scenarios (regression testing)
-- [ ] Verify all fixes work correctly
-
-#### Day 8: Final Validation
-- [ ] Re-run UAT-001, UAT-002, UAT-003 (end-to-end workflows)
-- [ ] Verify no critical or high-priority bugs remain
-- [ ] Confirm performance metrics meet acceptance criteria
-- [ ] Sign-off on acceptance test completion
-
-### Post-Test Activities
-
-- [ ] Compile test results report
-- [ ] Update bug tracking system
-- [ ] Document known issues and workarounds
-- [ ] Update release notes with bug fixes
-- [ ] Prepare for production deployment
+#### EH-004-3: 無効な話者数
+- **テスト**: 話者数 = 0 または > 10 を入力
+- **期待結果**: フォーム検証エラー、送信不可
 
 ---
 
-## Test Results Template
+## テスト実行チェックリスト
 
-### Test Summary
+### テスト前セットアップ
 
-| Test Category | Total Tests | Passed | Failed | Blocked | Pass Rate |
+- [ ] 本番環境がデプロイされている（`docker-compose -f docker-compose.prod.yml up -d`）
+- [ ] 全サービスが正常（backend, celery-worker, postgres, redis, nginx）
+- [ ] テストアカウントが作成され検証済み
+- [ ] テストデータが準備済み（各種サイズと形式の音声/動画ファイル）
+- [ ] GPUが利用可能で適切に設定されている
+- [ ] SSL証明書がインストールされ有効
+- [ ] 監視ツールが設定されている（オプション: Grafana、Prometheus）
+
+### テスト実行
+
+#### 1日目: ユーザーワークフローテスト
+- [ ] UAT-001: 一般ユーザーの完全ワークフロー
+- [ ] UAT-002: 管理者ワークフロー
+- [ ] UAT-003: 複数ファイルアップロードワークフロー
+- [ ] 見つかったバグを重要度ラベル付きで文書化
+
+#### 2日目: 機能テスト（パート1）
+- [ ] FT-001: 認証と認可（全サブテスト）
+- [ ] FT-002: ファイルアップロードの検証（全サブテスト）
+- [ ] FT-003: 文字起こし処理（全サブテスト）
+- [ ] バグを文書化
+
+#### 3日目: 機能テスト（パート2）
+- [ ] FT-004: 話者分離（全サブテスト）
+- [ ] FT-005: 結果の編集（全サブテスト）
+- [ ] FT-006: 字幕ファイル生成（全サブテスト）
+- [ ] FT-007: タスク管理（全サブテスト）
+- [ ] FT-008: 処理履歴（全サブテスト）
+- [ ] FT-009: 管理者ダッシュボード（全サブテスト）
+- [ ] バグを文書化
+
+#### 4日目: パフォーマンステスト
+- [ ] PT-001: 同時ユーザー負荷テスト（20ユーザー、30分）
+- [ ] PT-002: 大容量ファイルアップロードテスト（1GBファイル）
+- [ ] PT-003: GPUメモリ管理テスト
+- [ ] PT-004: データベースクエリパフォーマンステスト
+- [ ] PT-005: 文字起こし処理速度テスト
+- [ ] パフォーマンスメトリクスを記録
+
+#### 5日目: セキュリティテスト
+- [ ] ST-001: 認証セキュリティ（全サブテスト）
+- [ ] ST-002: 認可セキュリティ（全サブテスト）
+- [ ] ST-003: ファイルアップロードセキュリティ（全サブテスト）
+- [ ] ST-004: クロスサイトスクリプティング（XSS）
+- [ ] ST-005: クロスサイトリクエストフォージェリ（CSRF）
+- [ ] ST-006: 情報開示
+- [ ] セキュリティ所見を文書化
+
+#### 6日目: 互換性とエラーハンドリング
+- [ ] CT-001: ブラウザ互換性（全ブラウザ）
+- [ ] CT-002: レスポンシブデザイン（全ビューポート）
+- [ ] CT-003: ネットワーク状態
+- [ ] EH-001: ネットワークエラー（全サブテスト）
+- [ ] EH-002: 処理エラー（全サブテスト）
+- [ ] EH-003: データベースエラー（全サブテスト）
+- [ ] EH-004: 検証エラー（全サブテスト）
+- [ ] 互換性の問題とエラーハンドリングのギャップを文書化
+
+#### 7日目: バグ修正と回帰テスト
+- [ ] 文書化された全バグをレビュー
+- [ ] バグの優先順位付け（クリティカル、高、中、低）
+- [ ] クリティカルおよび高優先度バグを修正
+- [ ] 影響を受けたテストシナリオを再実行（回帰テスト）
+- [ ] 全修正が正しく動作することを確認
+
+#### 8日目: 最終検証
+- [ ] UAT-001、UAT-002、UAT-003を再実行（エンドツーエンドワークフロー）
+- [ ] クリティカルまたは高優先度バグが残っていないことを確認
+- [ ] パフォーマンスメトリクスが受け入れ基準を満たすことを確認
+- [ ] 受け入れテスト完了の承認
+
+### テスト後活動
+
+- [ ] テスト結果レポートをまとめる
+- [ ] バグ追跡システムを更新
+- [ ] 既知の問題と回避策を文書化
+- [ ] バグ修正でリリースノートを更新
+- [ ] 本番デプロイの準備
+
+---
+
+## テスト結果テンプレート
+
+### テスト要約
+
+| テストカテゴリ | 総テスト数 | 合格 | 失敗 | ブロック | 合格率 |
 |--------------|-------------|--------|--------|---------|-----------|
-| User Workflows | 3 | | | | |
-| Functional Tests | 50+ | | | | |
-| Performance Tests | 5 | | | | |
-| Security Tests | 15+ | | | | |
-| Compatibility Tests | 3 | | | | |
-| Error Handling Tests | 12+ | | | | |
-| **Total** | **88+** | | | | |
+| ユーザーワークフロー | 3 | | | | |
+| 機能テスト | 50+ | | | | |
+| パフォーマンステスト | 5 | | | | |
+| セキュリティテスト | 15+ | | | | |
+| 互換性テスト | 3 | | | | |
+| エラーハンドリングテスト | 12+ | | | | |
+| **合計** | **88+** | | | | |
 
-### Bug Summary
+### バグ要約
 
-| Severity | Open | Fixed | Total |
+| 重要度 | 未解決 | 修正済み | 合計 |
 |----------|------|-------|-------|
-| Critical | | | |
-| High | | | |
-| Medium | | | |
-| Low | | | |
-| **Total** | | | |
+| クリティカル | | | |
+| 高 | | | |
+| 中 | | | |
+| 低 | | | |
+| **合計** | | | |
 
-### Performance Metrics
+### パフォーマンスメトリクス
 
-| Metric | Target | Actual | Status |
+| メトリクス | 目標 | 実績 | ステータス |
 |--------|--------|--------|--------|
-| API Response Time (p95) | < 500ms | | |
-| Concurrent Users | 20 | | |
-| Large File Upload | 1GB | | |
-| Transcription Speed | File duration × 0.5 | | |
-| Error Rate | < 1% | | |
+| APIレスポンスタイム（p95） | < 500ms | | |
+| 同時ユーザー数 | 20 | | |
+| 大容量ファイルアップロード | 1GB | | |
+| 文字起こし速度 | ファイル長 × 0.5 | | |
+| エラー率 | < 1% | | |
 
-### Security Findings
+### セキュリティ所見
 
-| Finding | Severity | Status |
+| 所見 | 重要度 | ステータス |
 |---------|----------|--------|
 | | | |
 
-### Sign-off
+### 承認
 
-| Role | Name | Signature | Date |
+| 役割 | 名前 | 署名 | 日付 |
 |------|------|-----------|------|
-| QA Lead | | | |
-| Product Manager | | | |
-| Technical Lead | | | |
-| Project Manager | | | |
+| QAリード | | | |
+| プロダクトマネージャー | | | |
+| テクニカルリード | | | |
+| プロジェクトマネージャー | | | |
 
 ---
 
-## Appendix
+## 付録
 
-### A. Test Data Preparation
+### A. テストデータ準備
 
-**Sample Audio Files**:
+**サンプル音声ファイル**:
 ```bash
-# Download or prepare test files
+# テストファイルをダウンロードまたは準備
 /data/test-files/
 ├── audio/
-│   ├── japanese-2speakers-24s.mp3 (24 seconds, 2 speakers, Japanese)
-│   ├── english-1speaker-60s.wav (1 minute, single speaker, English)
-│   ├── mixed-language-5min.m4a (5 minutes, mixed JP/EN)
-│   └── large-meeting-30min.flac (30 minutes, 5 speakers)
+│   ├── japanese-2speakers-24s.mp3 (24秒、2人の話者、日本語)
+│   ├── english-1speaker-60s.wav (1分、単一話者、英語)
+│   ├── mixed-language-5min.m4a (5分、日英混合)
+│   └── large-meeting-30min.flac (30分、5人の話者)
 └── video/
-    ├── zoom-recording-10min.mp4 (10 minutes, 2 speakers)
-    ├── teams-recording-500mb.avi (500MB video file)
-    └── large-video-1gb.mkv (1GB video file for size testing)
+    ├── zoom-recording-10min.mp4 (10分、2人の話者)
+    ├── teams-recording-500mb.avi (500MB動画ファイル)
+    └── large-video-1gb.mkv (1GB動画ファイル、サイズテスト用)
 ```
 
-### B. Test Tools and Scripts
+### B. テストツールとスクリプト
 
-**Load Testing Script (Locust)**:
+**負荷テストスクリプト（Locust）**:
 ```python
 # locustfile.py
 from locust import HttpUser, task, between
@@ -998,7 +998,7 @@ class WhisperAppUser(HttpUser):
     wait_time = between(1, 5)
 
     def on_start(self):
-        # Login
+        # ログイン
         response = self.client.post("/api/v1/auth/login", json={
             "username": "user1",
             "password": "user123"
@@ -1012,7 +1012,7 @@ class WhisperAppUser(HttpUser):
 
     @task(1)
     def upload_file(self):
-        # Upload test file
+        # テストファイルをアップロード
         with open("test.mp3", "rb") as f:
             self.client.post("/api/v1/upload", files={"file": f}, data={
                 "model_name": "tiny",
@@ -1020,73 +1020,73 @@ class WhisperAppUser(HttpUser):
             })
 ```
 
-### C. Browser Automation Script (Playwright)
+### C. ブラウザ自動化スクリプト（Playwright）
 
 ```javascript
 // e2e-test.spec.js
 const { test, expect } = require('@playwright/test');
 
 test('complete user workflow', async ({ page }) => {
-  // Login
+  // ログイン
   await page.goto('https://yourdomain.com');
   await page.fill('input[name="username"]', 'user1');
   await page.fill('input[name="password"]', 'user123');
   await page.click('button[type="submit"]');
 
-  // Wait for dashboard
+  // ダッシュボード待機
   await expect(page).toHaveURL(/.*dashboard/);
 
-  // Navigate to upload
+  // アップロードに移動
   await page.click('text=アップロード');
 
-  // Upload file
+  // ファイルをアップロード
   const fileInput = await page.locator('input[type="file"]');
   await fileInput.setInputFiles('test-audio.mp3');
 
-  // Set parameters
+  // パラメータを設定
   await page.selectOption('select[name="model"]', 'tiny');
   await page.selectOption('select[name="language"]', 'ja');
 
-  // Start upload
+  // アップロード開始
   await page.click('text=アップロード開始');
 
-  // Wait for completion
+  // 完了を待機
   await page.waitForSelector('text=完了', { timeout: 60000 });
 
-  // Verify results
+  // 結果を検証
   const transcriptionText = await page.textContent('.transcription-text');
   expect(transcriptionText).toBeTruthy();
 });
 ```
 
-### D. Security Testing Tools
+### D. セキュリティテストツール
 
-- **OWASP ZAP**: Automated security scanning
-- **Burp Suite**: Manual security testing
-- **SQLMap**: SQL injection testing
-- **JWT Tool**: JWT token manipulation testing
+- **OWASP ZAP**: 自動セキュリティスキャン
+- **Burp Suite**: 手動セキュリティテスト
+- **SQLMap**: SQLインジェクションテスト
+- **JWT Tool**: JWTトークン操作テスト
 
-### E. Performance Monitoring Commands
+### E. パフォーマンス監視コマンド
 
 ```bash
-# Monitor Docker container resources
+# Dockerコンテナリソースを監視
 docker stats
 
-# Monitor GPU usage
+# GPU使用率を監視
 nvidia-smi -l 1
 
-# Monitor PostgreSQL queries
+# PostgreSQLクエリを監視
 docker exec -it postgres psql -U whisper_prod -d whisper_prod -c "SELECT * FROM pg_stat_activity;"
 
-# Monitor Redis
+# Redisを監視
 docker exec -it redis redis-cli INFO stats
 
-# Monitor Celery tasks
+# Celeryタスクを監視
 docker exec -it celery-worker celery -A app.celery_app inspect active
 ```
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: 2025-10-13
-**Status**: Ready for Execution
+**ドキュメントバージョン**: 1.0
+**最終更新日**: 2025-10-13
+**ステータス**: 実行準備完了

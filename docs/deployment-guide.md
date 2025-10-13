@@ -1,155 +1,155 @@
-# Deployment Guide
+# デプロイガイド
 
-This guide covers deploying the Whisper App to production environments with best practices for monitoring, maintenance, and updates.
+このガイドでは、Whisper Appを本番環境にデプロイする際のベストプラクティス、監視、メンテナンス、更新について説明します。
 
-## Table of Contents
+## 目次
 
-1. [Pre-deployment Checklist](#pre-deployment-checklist)
-2. [Initial Deployment](#initial-deployment)
-3. [SSL/TLS Configuration](#ssltls-configuration)
-4. [Monitoring Setup](#monitoring-setup)
-5. [Backup Configuration](#backup-configuration)
-6. [Scaling Considerations](#scaling-considerations)
-7. [Update Procedures](#update-procedures)
-8. [Rollback Procedures](#rollback-procedures)
-9. [Maintenance Tasks](#maintenance-tasks)
+1. [デプロイ前チェックリスト](#pre-deployment-checklist)
+2. [初期デプロイ](#initial-deployment)
+3. [SSL/TLS設定](#ssltls-configuration)
+4. [監視設定](#monitoring-setup)
+5. [バックアップ設定](#backup-configuration)
+6. [スケーリングの考慮事項](#scaling-considerations)
+7. [更新手順](#update-procedures)
+8. [ロールバック手順](#rollback-procedures)
+9. [メンテナンスタスク](#maintenance-tasks)
 
 ## Pre-deployment Checklist
 
-### Infrastructure Requirements
+### インフラストラクチャ要件
 
-- [ ] **Server provisioned** with minimum specs:
-  - 8+ CPU cores
-  - 32GB+ RAM
-  - 100GB+ disk space
-  - NVIDIA GPU with 20-30GB VRAM
-- [ ] **NVIDIA drivers installed** (version 525.60.13+)
-- [ ] **NVIDIA Container Toolkit** installed and configured
-- [ ] **Docker** (24.0+) and Docker Compose (2.20+) installed
-- [ ] **Domain name** registered and DNS configured
-- [ ] **Firewall** configured (ports 80, 443 open)
-- [ ] **SSL certificates** ready (Let's Encrypt or commercial)
+- [ ] **サーバーの準備完了** 最小スペック:
+  - 8コア以上のCPU
+  - 32GB以上のRAM
+  - 100GB以上のディスク容量
+  - 20-30GB VRAMのNVIDIA GPU
+- [ ] **NVIDIAドライバのインストール完了** (バージョン 525.60.13以降)
+- [ ] **NVIDIA Container Toolkit**のインストールと設定完了
+- [ ] **Docker** (24.0以降) と Docker Compose (2.20以降) のインストール完了
+- [ ] **ドメイン名**の登録とDNS設定完了
+- [ ] **ファイアウォール**の設定完了 (ポート80, 443を開放)
+- [ ] **SSL証明書**の準備完了 (Let's Encryptまたは商用証明書)
 
-### Configuration
+### 設定
 
-- [ ] `.env` file created with production values
-- [ ] Strong passwords generated for database and Redis
-- [ ] `SECRET_KEY` generated (32+ random bytes)
-- [ ] LDAP server details configured
-- [ ] Domain name configured in Nginx
-- [ ] SSL email configured for Let's Encrypt
-- [ ] Backup retention policy set
-- [ ] File retention hours configured
+- [ ] 本番環境の値で`.env`ファイルを作成済み
+- [ ] データベースとRedisの強力なパスワードを生成済み
+- [ ] `SECRET_KEY`を生成済み (32バイト以上のランダム値)
+- [ ] LDAPサーバーの詳細を設定済み
+- [ ] Nginxでドメイン名を設定済み
+- [ ] Let's EncryptのSSLメール設定完了
+- [ ] バックアップ保持ポリシーを設定済み
+- [ ] ファイル保持時間を設定済み
 
-### Security
+### セキュリティ
 
-- [ ] All passwords use strong random values
-- [ ] `SECRET_KEY` is unique and not exposed
-- [ ] LDAP bind credentials secured
-- [ ] Database exposed only to Docker network
-- [ ] Redis exposed only to Docker network
-- [ ] Firewall rules tested
-- [ ] SSL/TLS certificates valid
+- [ ] すべてのパスワードが強力なランダム値を使用
+- [ ] `SECRET_KEY`が一意で外部に公開されていない
+- [ ] LDAPバインド認証情報が保護されている
+- [ ] データベースがDockerネットワークのみに公開されている
+- [ ] RedisがDockerネットワークのみに公開されている
+- [ ] ファイアウォールルールをテスト済み
+- [ ] SSL/TLS証明書が有効
 
-### Testing
+### テスト
 
-- [ ] Development environment tested
-- [ ] All migrations applied successfully
-- [ ] Backend tests passing (pytest)
-- [ ] Frontend tests passing (npm test)
-- [ ] Integration tests passing
-- [ ] LDAP authentication tested
+- [ ] 開発環境でテスト済み
+- [ ] すべてのマイグレーションが正常に適用済み
+- [ ] バックエンドテストが合格 (pytest)
+- [ ] フロントエンドテストが合格 (npm test)
+- [ ] 統合テストが合格
+- [ ] LDAP認証をテスト済み
 
 ## Initial Deployment
 
-### Step 1: Prepare the Server
+### ステップ1: サーバーの準備
 
 ```bash
-# Update system
+# システムの更新
 sudo apt-get update && sudo apt-get upgrade -y
 
-# Install required packages
+# 必要なパッケージのインストール
 sudo apt-get install -y git curl wget ufw
 
-# Configure firewall
+# ファイアウォールの設定
 sudo ufw allow 22/tcp   # SSH
 sudo ufw allow 80/tcp   # HTTP
 sudo ufw allow 443/tcp  # HTTPS
 sudo ufw enable
 
-# Install Docker (if not already installed)
+# Dockerのインストール (未インストールの場合)
 curl -fsSL https://get.docker.com -o get-docker.sh
 sudo sh get-docker.sh
 sudo usermod -aG docker $USER
 ```
 
-### Step 2: Clone and Configure
+### ステップ2: クローンと設定
 
 ```bash
-# Clone repository
+# リポジトリのクローン
 git clone https://github.com/your-org/whisper-app.git
 cd whisper-app
 
-# Switch to stable branch/tag
-git checkout tags/v1.0.0  # Or: git checkout main
+# 安定版ブランチ/タグに切り替え
+git checkout tags/v1.0.0  # または: git checkout main
 
-# Copy and configure environment
+# 環境設定のコピーと編集
 cp .env.example .env
-nano .env  # Edit with production values
+nano .env  # 本番環境の値で編集
 
-# Generate secure secrets
+# セキュアなシークレットの生成
 export SECRET_KEY=$(openssl rand -hex 32)
 export POSTGRES_PASSWORD=$(openssl rand -base64 32)
 
-# Update .env with generated secrets
+# 生成されたシークレットで.envを更新
 sed -i "s/your_secret_key_here/$SECRET_KEY/" .env
 sed -i "s/your_postgres_password/$POSTGRES_PASSWORD/" .env
 
-# Update domain name
+# ドメイン名の更新
 export DOMAIN=yourdomain.com
 sed -i "s/yourdomain.com/$DOMAIN/g" .env
 sed -i "s/yourdomain.com/$DOMAIN/g" nginx/nginx.prod.conf
 ```
 
-### Step 3: Build Frontend
+### ステップ3: フロントエンドのビルド
 
 ```bash
 cd frontend
 
-# Install dependencies
+# 依存関係のインストール
 npm install
 
-# Build for production
+# 本番環境用のビルド
 npm run build
 
 cd ..
 ```
 
-### Step 4: Prepare Data Directories
+### ステップ4: データディレクトリの準備
 
 ```bash
-# Create directories
+# ディレクトリの作成
 mkdir -p data/uploads data/results data/temp
 mkdir -p backup
 mkdir -p logs/nginx logs/backend logs/celery
 mkdir -p certbot/conf certbot/www
 
-# Set permissions
+# パーミッションの設定
 chmod 755 data backup logs certbot
 ```
 
-### Step 5: Obtain SSL Certificate
+### ステップ5: SSL証明書の取得
 
-#### Using Let's Encrypt
+#### Let's Encryptを使用する場合
 
 ```bash
-# Start nginx temporarily (HTTP only)
+# nginxを一時的に起動 (HTTPのみ)
 docker-compose -f docker-compose.prod.yml up -d nginx postgres redis
 
-# Wait for nginx to be ready
+# nginxの準備ができるまで待機
 sleep 10
 
-# Obtain certificate
+# 証明書の取得
 docker-compose -f docker-compose.prod.yml run --rm certbot certonly \
   --webroot \
   --webroot-path=/var/www/certbot \
@@ -158,150 +158,150 @@ docker-compose -f docker-compose.prod.yml run --rm certbot certonly \
   --no-eff-email \
   -d yourdomain.com
 
-# Verify certificate
+# 証明書の確認
 ls -la certbot/conf/live/yourdomain.com/
 
-# Stop temporary nginx
+# 一時的なnginxの停止
 docker-compose -f docker-compose.prod.yml down
 ```
 
-#### Using Existing Certificates
+#### 既存の証明書を使用する場合
 
 ```bash
-# Copy certificates
+# 証明書のコピー
 mkdir -p certbot/conf/live/yourdomain.com
 cp /path/to/fullchain.pem certbot/conf/live/yourdomain.com/
 cp /path/to/privkey.pem certbot/conf/live/yourdomain.com/
 cp /path/to/chain.pem certbot/conf/live/yourdomain.com/
 
-# Set permissions
+# パーミッションの設定
 chmod 600 certbot/conf/live/yourdomain.com/*.pem
 ```
 
-### Step 6: Deploy Services
+### ステップ6: サービスのデプロイ
 
 ```bash
-# Build and start all services
+# すべてのサービスをビルドして起動
 docker-compose -f docker-compose.prod.yml up -d --build
 
-# Monitor startup
+# 起動状況の監視
 docker-compose -f docker-compose.prod.yml logs -f
 
-# Wait for services to be healthy
+# サービスがヘルシーになるまで待機
 docker-compose -f docker-compose.prod.yml ps
 ```
 
-### Step 7: Initialize Database
+### ステップ7: データベースの初期化
 
 ```bash
-# Apply migrations
+# マイグレーションの適用
 docker-compose -f docker-compose.prod.yml exec backend alembic upgrade head
 
-# Verify tables created
+# テーブルが作成されたことを確認
 docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "\dt"
 
-# Check migration status
+# マイグレーションステータスの確認
 docker-compose -f docker-compose.prod.yml exec backend alembic current
 ```
 
-### Step 8: Create Admin User
+### ステップ8: 管理者ユーザーの作成
 
 ```bash
-# Access database
+# データベースへのアクセス
 docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod
 
-# Create admin user (will be created on first LDAP login, then promoted)
-# After first LDAP login, run:
+# 管理者ユーザーの作成 (最初のLDAPログイン時に作成され、その後昇格)
+# 最初のLDAPログイン後、以下を実行:
 UPDATE users SET is_admin = true WHERE username = 'admin_username';
 
-# Verify
+# 確認
 SELECT id, username, email, is_admin FROM users;
 
-# Exit
+# 終了
 \q
 ```
 
-### Step 9: Verify Deployment
+### ステップ9: デプロイの確認
 
-Run all verification steps from [Verification](#verification-steps) section below.
+以下の[確認手順](#verification-steps)セクションのすべての検証ステップを実行してください。
 
 ## SSL/TLS Configuration
 
-### Let's Encrypt Certificate Renewal
+### Let's Encrypt証明書の更新
 
-Certificates are automatically renewed by the certbot container. To test renewal:
+証明書はcertbotコンテナによって自動的に更新されます。更新をテストするには:
 
 ```bash
-# Test renewal (dry run)
+# 更新のテスト (ドライラン)
 docker-compose -f docker-compose.prod.yml run --rm certbot renew --dry-run
 
-# Force renewal (if needed)
+# 強制更新 (必要な場合)
 docker-compose -f docker-compose.prod.yml run --rm certbot renew --force-renewal
 
-# Reload nginx after renewal
+# 更新後にnginxをリロード
 docker-compose -f docker-compose.prod.yml exec nginx nginx -s reload
 ```
 
-### Certificate Renewal Cron Job
+### 証明書更新のCronジョブ
 
-The certbot container automatically attempts renewal twice daily. Monitor logs:
+certbotコンテナは1日2回自動的に更新を試みます。ログの監視:
 
 ```bash
 docker-compose -f docker-compose.prod.yml logs certbot
 ```
 
-### SSL Configuration Updates
+### SSL設定の更新
 
-To update SSL settings in Nginx:
+NginxのSSL設定を更新するには:
 
 ```bash
-# Edit nginx configuration
+# nginx設定の編集
 nano nginx/nginx.prod.conf
 
-# Test configuration
+# 設定のテスト
 docker-compose -f docker-compose.prod.yml exec nginx nginx -t
 
-# Reload nginx
+# nginxのリロード
 docker-compose -f docker-compose.prod.yml exec nginx nginx -s reload
 ```
 
 ## Monitoring Setup
 
-### Application Monitoring
+### アプリケーション監視
 
-#### Log Monitoring
+#### ログ監視
 
 ```bash
-# View real-time logs
+# リアルタイムログの表示
 docker-compose -f docker-compose.prod.yml logs -f
 
-# View specific service logs
+# 特定のサービスログの表示
 docker-compose -f docker-compose.prod.yml logs -f backend
 docker-compose -f docker-compose.prod.yml logs -f celery-worker
 docker-compose -f docker-compose.prod.yml logs -f nginx
 
-# Save logs to file
+# ログをファイルに保存
 docker-compose -f docker-compose.prod.yml logs --no-color > logs/application-$(date +%Y%m%d).log
 ```
 
-#### Health Check Monitoring
+#### ヘルスチェック監視
 
-Create a monitoring script (`scripts/health-check.sh`):
+監視スクリプトを作成 (`scripts/health-check.sh`):
 
 ```bash
 #!/bin/bash
-# Health check script for monitoring
+# ヘルスチェックスクリプト
 
 DOMAIN="https://yourdomain.com"
 ALERT_EMAIL="admin@yourdomain.com"
 
-# Check health endpoint
+# ヘルスエンドポイントのチェック
 if ! curl -sf "$DOMAIN/health" > /dev/null; then
     echo "Health check failed at $(date)" | mail -s "Whisper App Health Check Failed" $ALERT_EMAIL
     exit 1
 fi
 
-# Check SSL certificate expiration
+# SSL証明書の有効期限チェック
 EXPIRY_DATE=$(echo | openssl s_client -servername yourdomain.com -connect yourdomain.com:443 2>/dev/null | openssl x509 -noout -enddate | cut -d= -f2)
 EXPIRY_EPOCH=$(date -d "$EXPIRY_DATE" +%s)
 CURRENT_EPOCH=$(date +%s)
@@ -314,46 +314,46 @@ fi
 echo "Health check passed at $(date)"
 ```
 
-Add to cron:
+cronに追加:
 ```bash
-# Run every 5 minutes
+# 5分ごとに実行
 */5 * * * * /path/to/whisper-app/scripts/health-check.sh >> /var/log/whisper-health.log 2>&1
 ```
 
-### System Resource Monitoring
+### システムリソース監視
 
-#### GPU Monitoring
+#### GPU監視
 
 ```bash
-# Watch GPU usage
+# GPU使用状況の監視
 watch -n 1 docker-compose -f docker-compose.prod.yml exec celery-worker nvidia-smi
 
-# Log GPU stats to file
+# GPU統計をファイルに記録
 while true; do
     docker-compose -f docker-compose.prod.yml exec celery-worker nvidia-smi --query-gpu=timestamp,temperature.gpu,utilization.gpu,utilization.memory,memory.used,memory.free --format=csv >> logs/gpu-stats-$(date +%Y%m%d).csv
     sleep 60
 done
 ```
 
-#### Container Resource Usage
+#### コンテナリソース使用状況
 
 ```bash
-# View container stats
+# コンテナ統計の表示
 docker stats
 
-# Log container stats
+# コンテナ統計のログ記録
 docker stats --no-stream >> logs/container-stats-$(date +%Y%m%d).log
 ```
 
-### Database Monitoring
+### データベース監視
 
 ```bash
-# Check database size
+# データベースサイズの確認
 docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "
 SELECT pg_size_pretty(pg_database_size('whisper_prod')) AS db_size;
 "
 
-# Check table sizes
+# テーブルサイズの確認
 docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "
 SELECT schemaname, tablename,
        pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size
@@ -362,12 +362,12 @@ WHERE schemaname = 'public'
 ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
 "
 
-# Check active connections
+# アクティブな接続数の確認
 docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "
 SELECT count(*) as active_connections FROM pg_stat_activity WHERE state = 'active';
 "
 
-# Check slow queries (if pg_stat_statements enabled)
+# スロークエリの確認 (pg_stat_statementsが有効な場合)
 docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "
 SELECT query, calls, mean_exec_time, stddev_exec_time
 FROM pg_stat_statements
@@ -376,48 +376,48 @@ LIMIT 10;
 "
 ```
 
-### Alerting
+### アラート
 
-Consider integrating with monitoring tools:
-- **Prometheus + Grafana**: For metrics visualization
-- **ELK Stack (Elasticsearch, Logstash, Kibana)**: For log aggregation
-- **Sentry**: For error tracking
-- **PagerDuty/Opsgenie**: For incident management
+監視ツールとの統合を検討してください:
+- **Prometheus + Grafana**: メトリクスの可視化
+- **ELK Stack (Elasticsearch, Logstash, Kibana)**: ログ集約
+- **Sentry**: エラートラッキング
+- **PagerDuty/Opsgenie**: インシデント管理
 
 ## Backup Configuration
 
-### Automated Backups
+### 自動バックアップ
 
-The backup service runs daily at 3:00 AM UTC. Configuration:
+バックアップサービスは毎日午前3時(UTC)に実行されます。設定:
 
 ```bash
-# View backup service status
+# バックアップサービスのステータス表示
 docker-compose -f docker-compose.prod.yml ps backup
 
-# View backup logs
+# バックアップログの表示
 docker-compose -f docker-compose.prod.yml logs backup
 
-# List backups
+# バックアップの一覧表示
 ls -lh backup/
 
-# Check latest backup
+# 最新バックアップの確認
 ls -lh backup/whisper_backup_latest.sql.gz
 ```
 
-### Manual Backup
+### 手動バックアップ
 
 ```bash
-# Create manual backup
+# 手動バックアップの作成
 docker-compose -f docker-compose.prod.yml exec backup /scripts/backup.sh
 
-# Backup with custom filename
+# カスタムファイル名でのバックアップ
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 docker-compose -f docker-compose.prod.yml exec postgres pg_dump -U whisper_prod whisper_prod | gzip > backup/manual_backup_${TIMESTAMP}.sql.gz
 ```
 
-### Off-site Backup
+### オフサイトバックアップ
 
-Set up automated off-site backup:
+自動オフサイトバックアップの設定:
 
 ```bash
 #!/bin/bash
@@ -427,45 +427,45 @@ BACKUP_DIR="/path/to/whisper-app/backup"
 REMOTE_HOST="backup-server.example.com"
 REMOTE_PATH="/backups/whisper-app"
 
-# Sync backups to remote server
+# リモートサーバーにバックアップを同期
 rsync -avz --delete \
   $BACKUP_DIR/ \
   user@$REMOTE_HOST:$REMOTE_PATH/
 
-# Or upload to cloud storage (S3 example)
+# または、クラウドストレージにアップロード (S3の例)
 # aws s3 sync $BACKUP_DIR s3://your-bucket/whisper-backups/
 ```
 
-Add to cron:
+cronに追加:
 ```bash
-# Run daily at 4:00 AM (after backup completes)
+# 毎日午前4時に実行 (バックアップ完了後)
 0 4 * * * /path/to/whisper-app/scripts/offsite-backup.sh >> /var/log/offsite-backup.log 2>&1
 ```
 
-### Restore from Backup
+### バックアップからの復元
 
 ```bash
-# Stop services
+# サービスの停止
 docker-compose -f docker-compose.prod.yml stop backend celery-worker
 
-# Restore database
+# データベースの復元
 gunzip -c backup/whisper_backup_YYYYMMDD_HHMMSS.sql.gz | \
   docker-compose -f docker-compose.prod.yml exec -T postgres psql -U whisper_prod -d whisper_prod
 
-# Restart services
+# サービスの再起動
 docker-compose -f docker-compose.prod.yml start backend celery-worker
 
-# Verify restore
+# 復元の確認
 docker-compose -f docker-compose.prod.yml exec backend alembic current
 ```
 
 ## Scaling Considerations
 
-### Vertical Scaling
+### 垂直スケーリング
 
-#### Increase Container Resources
+#### コンテナリソースの増加
 
-Edit `docker-compose.prod.yml`:
+`docker-compose.prod.yml`を編集:
 
 ```yaml
 services:
@@ -473,30 +473,30 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '8'      # Increase from 4
-          memory: 8G     # Increase from 4G
+          cpus: '8'      # 4から増加
+          memory: 8G     # 4Gから増加
 
   celery-worker:
     deploy:
       resources:
         limits:
-          cpus: '16'     # Increase from 8
-          memory: 64G    # Increase from 32G
+          cpus: '16'     # 8から増加
+          memory: 64G    # 32Gから増加
 ```
 
-#### Increase Worker Processes
+#### ワーカープロセスの増加
 
 ```yaml
 services:
   backend:
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 8  # Increase from 4
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 8  # 4から増加
 ```
 
-### Horizontal Scaling
+### 水平スケーリング
 
-#### Multiple Celery Workers
+#### 複数のCeleryワーカー
 
-Add more Celery worker containers:
+Celeryワーカーコンテナを追加:
 
 ```yaml
 services:
@@ -510,12 +510,12 @@ services:
     <<: *celery-worker-config
     container_name: whisper-celery-worker-2
     environment:
-      - CUDA_VISIBLE_DEVICES=1  # Second GPU
+      - CUDA_VISIBLE_DEVICES=1  # 2番目のGPU
 ```
 
-#### Load Balancing
+#### ロードバランシング
 
-For multiple backend instances, add load balancer:
+複数のバックエンドインスタンスの場合、ロードバランサーを追加:
 
 ```yaml
 services:
@@ -526,12 +526,12 @@ services:
     <<: *backend-config
 
   nginx:
-    # Update upstream configuration
+    # upstream設定を更新
     volumes:
       - ./nginx/nginx.lb.conf:/etc/nginx/nginx.conf:ro
 ```
 
-Update `nginx/nginx.lb.conf`:
+`nginx/nginx.lb.conf`を更新:
 ```nginx
 upstream backend {
     least_conn;
@@ -541,159 +541,159 @@ upstream backend {
 }
 ```
 
-### Database Scaling
+### データベースのスケーリング
 
-For high load, consider:
-- **Read replicas**: For analytics queries
-- **Connection pooling**: PgBouncer
-- **Partitioning**: For large tables
+高負荷の場合、以下を検討してください:
+- **リードレプリカ**: 分析クエリ用
+- **コネクションプーリング**: PgBouncer
+- **パーティショニング**: 大きなテーブル用
 
 ## Update Procedures
 
-### Pre-update Checklist
+### 更新前チェックリスト
 
-- [ ] **Backup created** and verified
-- [ ] **Changelog reviewed** for breaking changes
-- [ ] **Maintenance window scheduled**
-- [ ] **Rollback plan prepared**
-- [ ] **Team notified**
+- [ ] **バックアップの作成**と確認完了
+- [ ] **変更履歴を確認**し、破壊的変更がないか確認
+- [ ] **メンテナンスウィンドウのスケジュール**完了
+- [ ] **ロールバック計画**の準備完了
+- [ ] **チームへの通知**完了
 
-### Update Steps
+### 更新手順
 
 ```bash
-# 1. Create backup
+# 1. バックアップの作成
 docker-compose -f docker-compose.prod.yml exec backup /scripts/backup.sh
 
-# 2. Enable maintenance mode (optional)
-# Create maintenance.html in nginx/html/
+# 2. メンテナンスモードの有効化 (オプション)
+# nginx/html/にmaintenance.htmlを作成
 docker-compose -f docker-compose.prod.yml exec nginx nginx -s reload
 
-# 3. Pull latest code
+# 3. 最新コードのプル
 git fetch origin
-git checkout tags/v1.1.0  # Or specific version
+git checkout tags/v1.1.0  # または特定のバージョン
 
-# 4. Review changes
+# 4. 変更内容の確認
 git log v1.0.0..v1.1.0
 
-# 5. Update frontend
+# 5. フロントエンドの更新
 cd frontend
 npm install
 npm run build
 cd ..
 
-# 6. Stop services
+# 6. サービスの停止
 docker-compose -f docker-compose.prod.yml down
 
-# 7. Apply database migrations
+# 7. データベースマイグレーションの適用
 docker-compose -f docker-compose.prod.yml up -d postgres
 sleep 10
 docker-compose -f docker-compose.prod.yml run --rm backend alembic upgrade head
 
-# 8. Rebuild and restart services
+# 8. サービスの再ビルドと再起動
 docker-compose -f docker-compose.prod.yml up -d --build
 
-# 9. Verify deployment
+# 9. デプロイの確認
 curl https://yourdomain.com/health
 
-# 10. Disable maintenance mode
-# Remove maintenance.html
+# 10. メンテナンスモードの無効化
+# maintenance.htmlを削除
 docker-compose -f docker-compose.prod.yml exec nginx nginx -s reload
 
-# 11. Monitor logs
+# 11. ログの監視
 docker-compose -f docker-compose.prod.yml logs -f --tail=100
 ```
 
-### Zero-downtime Updates
+### ゼロダウンタイム更新
 
-For critical services, use blue-green deployment:
+重要なサービスの場合、ブルーグリーンデプロイメントを使用:
 
 ```bash
-# 1. Deploy to new stack
+# 1. 新しいスタックへのデプロイ
 docker-compose -f docker-compose.blue.yml up -d --build
 
-# 2. Verify new stack
+# 2. 新しいスタックの確認
 curl https://blue.yourdomain.com/health
 
-# 3. Switch traffic (update DNS or load balancer)
+# 3. トラフィックの切り替え (DNSまたはロードバランサーを更新)
 
-# 4. Monitor for issues
+# 4. 問題がないか監視
 
-# 5. If stable, decommission old stack
+# 5. 安定している場合、古いスタックを停止
 docker-compose -f docker-compose.green.yml down
 ```
 
 ## Rollback Procedures
 
-### Immediate Rollback
+### 即座のロールバック
 
-If issues detected during update:
+更新中に問題が検出された場合:
 
 ```bash
-# 1. Stop current services
+# 1. 現在のサービスを停止
 docker-compose -f docker-compose.prod.yml down
 
-# 2. Checkout previous version
+# 2. 前のバージョンにチェックアウト
 git checkout tags/v1.0.0
 
-# 3. Restore database (if migrations applied)
+# 3. データベースの復元 (マイグレーションが適用された場合)
 gunzip -c backup/whisper_backup_YYYYMMDD_HHMMSS.sql.gz | \
   docker-compose -f docker-compose.prod.yml exec -T postgres psql -U whisper_prod -d whisper_prod
 
-# 4. Rebuild and start services
+# 4. サービスの再ビルドと起動
 docker-compose -f docker-compose.prod.yml up -d --build
 
-# 5. Verify rollback
+# 5. ロールバックの確認
 curl https://yourdomain.com/health
 ```
 
-### Database Rollback
+### データベースのロールバック
 
-To rollback migrations:
+マイグレーションをロールバックするには:
 
 ```bash
-# Downgrade to specific revision
+# 特定のリビジョンにダウングレード
 docker-compose -f docker-compose.prod.yml exec backend alembic downgrade <revision>
 
-# Or downgrade one version
+# または1つ前のバージョンにダウングレード
 docker-compose -f docker-compose.prod.yml exec backend alembic downgrade -1
 
-# Verify
+# 確認
 docker-compose -f docker-compose.prod.yml exec backend alembic current
 ```
 
 ## Maintenance Tasks
 
-### Daily Tasks
+### 日次タスク
 
-- [ ] Check service health (`docker-compose ps`)
-- [ ] Review error logs
-- [ ] Monitor disk usage
-- [ ] Verify backup completed
+- [ ] サービスの健全性確認 (`docker-compose ps`)
+- [ ] エラーログの確認
+- [ ] ディスク使用量の監視
+- [ ] バックアップの完了確認
 
-### Weekly Tasks
+### 週次タスク
 
-- [ ] Review system resource usage
-- [ ] Check SSL certificate expiration
-- [ ] Review slow query logs
-- [ ] Analyze task processing times
-- [ ] Review user feedback/issues
+- [ ] システムリソース使用状況の確認
+- [ ] SSL証明書の有効期限確認
+- [ ] スロークエリログの確認
+- [ ] タスク処理時間の分析
+- [ ] ユーザーフィードバック/問題の確認
 
-### Monthly Tasks
+### 月次タスク
 
-- [ ] Update system packages
-- [ ] Review and update Docker images
-- [ ] Database maintenance (VACUUM, ANALYZE)
-- [ ] Review access logs for anomalies
-- [ ] Test disaster recovery procedures
-- [ ] Review and update documentation
+- [ ] システムパッケージの更新
+- [ ] Dockerイメージの確認と更新
+- [ ] データベースメンテナンス (VACUUM, ANALYZE)
+- [ ] アクセスログの異常確認
+- [ ] 災害復旧手順のテスト
+- [ ] ドキュメントの確認と更新
 
-### Database Maintenance
+### データベースメンテナンス
 
 ```bash
-# Run VACUUM and ANALYZE
+# VACUUMとANALYZEの実行
 docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "VACUUM ANALYZE;"
 
-# Check for bloated tables
+# 肥大化したテーブルの確認
 docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "
 SELECT schemaname, tablename,
        pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size,
@@ -703,13 +703,13 @@ ORDER BY n_dead_tup DESC
 LIMIT 10;
 "
 
-# Reindex if needed
+# 必要に応じて再インデックス
 docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "REINDEX DATABASE whisper_prod;"
 ```
 
-### Log Rotation
+### ログローテーション
 
-Configure log rotation for Docker logs:
+Dockerログのログローテーション設定:
 
 ```json
 // /etc/docker/daemon.json
@@ -722,92 +722,92 @@ Configure log rotation for Docker logs:
 }
 ```
 
-Restart Docker daemon:
+Dockerデーモンの再起動:
 ```bash
 sudo systemctl restart docker
 ```
 
-### Cleanup Old Data
+### 古いデータのクリーンアップ
 
-The cleanup service runs automatically, but to manually trigger:
+クリーンアップサービスは自動的に実行されますが、手動でトリガーするには:
 
 ```bash
-# Run cleanup service
+# クリーンアップサービスの実行
 docker-compose -f docker-compose.prod.yml exec cleanup python -m app.scripts.cleanup_files
 
-# Check cleanup logs
+# クリーンアップログの確認
 docker-compose -f docker-compose.prod.yml logs cleanup
 ```
 
 ## Verification Steps
 
-### Post-deployment Verification
+### デプロイ後の確認
 
 ```bash
-# 1. Check all services running
+# 1. すべてのサービスが実行中か確認
 docker-compose -f docker-compose.prod.yml ps
 
-# 2. Test HTTPS endpoint
+# 2. HTTPSエンドポイントのテスト
 curl https://yourdomain.com/health
 
-# 3. Test authentication
+# 3. 認証のテスト
 curl -X POST https://yourdomain.com/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username": "test_user", "password": "test_pass"}'
 
-# 4. Check database
+# 4. データベースの確認
 docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "SELECT COUNT(*) FROM users;"
 
-# 5. Check GPU access
+# 5. GPUアクセスの確認
 docker-compose -f docker-compose.prod.yml exec celery-worker nvidia-smi
 
-# 6. Test file upload (via UI or API)
+# 6. ファイルアップロードのテスト (UIまたはAPI経由)
 
-# 7. Monitor logs for errors
+# 7. エラーのログ監視
 docker-compose -f docker-compose.prod.yml logs --tail=100 | grep -i error
 
-# 8. Check SSL certificate
+# 8. SSL証明書の確認
 echo | openssl s_client -servername yourdomain.com -connect yourdomain.com:443 2>/dev/null | openssl x509 -noout -dates
 
-# 9. Test backup system
+# 9. バックアップシステムのテスト
 docker-compose -f docker-compose.prod.yml exec backup /scripts/backup.sh
 
-# 10. Verify cleanup service
+# 10. クリーンアップサービスの確認
 docker-compose -f docker-compose.prod.yml logs cleanup
 ```
 
 ## Troubleshooting
 
-For detailed troubleshooting steps, see [troubleshooting.md](./troubleshooting.md).
+詳細なトラブルシューティング手順については、[troubleshooting.md](./troubleshooting.md)を参照してください。
 
-### Quick Diagnostics
+### クイック診断
 
 ```bash
-# Check service status
+# サービスステータスの確認
 docker-compose -f docker-compose.prod.yml ps
 
-# View recent errors
+# 最近のエラーの表示
 docker-compose -f docker-compose.prod.yml logs --tail=100 | grep -i error
 
-# Check resource usage
+# リソース使用状況の確認
 docker stats
 
-# Check disk space
+# ディスク容量の確認
 df -h
 
-# Check GPU status
+# GPUステータスの確認
 docker-compose -f docker-compose.prod.yml exec celery-worker nvidia-smi
 
-# Test database connection
+# データベース接続のテスト
 docker-compose -f docker-compose.prod.yml exec backend python -c "from app.core.database import test_connection; import asyncio; asyncio.run(test_connection())"
 ```
 
 ## Support and Documentation
 
-- [Setup Guide](./setup-guide.md) - Initial setup instructions
-- [API Specification](./api-specification.md) - API endpoint documentation
-- [Troubleshooting Guide](./troubleshooting.md) - Common issues and solutions
-- [Architecture Documentation](./architecture.md) - System design and architecture
-- [Database Design](./database-design.md) - Database schema and relationships
+- [セットアップガイド](./setup-guide.md) - 初期セットアップ手順
+- [API仕様](./api-specification.md) - APIエンドポイントのドキュメント
+- [トラブルシューティングガイド](./troubleshooting.md) - 一般的な問題と解決方法
+- [アーキテクチャドキュメント](./architecture.md) - システム設計とアーキテクチャ
+- [データベース設計](./database-design.md) - データベーススキーマとリレーションシップ
 
-For issues: https://github.com/your-org/whisper-app/issues
+問題報告: https://github.com/your-org/whisper-app/issues

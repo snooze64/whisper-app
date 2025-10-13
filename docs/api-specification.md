@@ -1,59 +1,59 @@
-# API Specification
+# API仕様
 
-Complete API documentation for the Whisper App backend.
+Whisper Appバックエンドの完全なAPIドキュメント。
 
-## Table of Contents
+## 目次
 
-1. [Overview](#overview)
-2. [Authentication](#authentication)
-3. [API Endpoints](#api-endpoints)
-   - [Authentication API](#authentication-api)
-   - [Upload API](#upload-api)
-   - [Task Management API](#task-management-api)
-   - [Transcription API](#transcription-api)
-   - [History API](#history-api)
-   - [Admin API](#admin-api)
-4. [Data Models](#data-models)
-5. [Error Responses](#error-responses)
-6. [Rate Limiting](#rate-limiting)
+1. [概要](#概要)
+2. [認証](#認証)
+3. [APIエンドポイント](#apiエンドポイント)
+   - [認証API](#認証api)
+   - [アップロードAPI](#アップロードapi)
+   - [タスク管理API](#タスク管理api)
+   - [文字起こしAPI](#文字起こしapi)
+   - [履歴API](#履歴api)
+   - [管理者API](#管理者api)
+4. [データモデル](#データモデル)
+5. [エラーレスポンス](#エラーレスポンス)
+6. [レート制限](#レート制限)
 
-## Overview
+## 概要
 
-**Base URL**: `https://yourdomain.com/api/v1`
+**ベースURL**: `https://yourdomain.com/api/v1`
 
-**Content Type**: `application/json` (except file uploads: `multipart/form-data`)
+**コンテンツタイプ**: `application/json` (ファイルアップロードを除く: `multipart/form-data`)
 
-**Authentication**: Bearer Token (JWT)
+**認証**: Bearer Token (JWT)
 
-**API Version**: v1
+**APIバージョン**: v1
 
-### HTTP Status Codes
+### HTTPステータスコード
 
-| Code | Description |
+| コード | 説明 |
 |------|-------------|
-| 200 | Success (OK) |
-| 201 | Created |
-| 204 | No Content (successful deletion) |
-| 400 | Bad Request (validation error) |
-| 401 | Unauthorized (invalid/missing token) |
-| 403 | Forbidden (insufficient permissions) |
-| 404 | Not Found |
-| 413 | Payload Too Large (file size exceeds limit) |
-| 422 | Unprocessable Entity (validation failed) |
-| 429 | Too Many Requests (rate limit exceeded) |
-| 500 | Internal Server Error |
-| 503 | Service Unavailable |
+| 200 | 成功 (OK) |
+| 201 | 作成完了 |
+| 204 | コンテンツなし (削除成功) |
+| 400 | 不正なリクエスト (検証エラー) |
+| 401 | 認証されていません (トークンが無効または欠落) |
+| 403 | 禁止 (権限不足) |
+| 404 | 見つかりません |
+| 413 | ペイロードが大きすぎます (ファイルサイズが制限を超過) |
+| 422 | 処理不可能なエンティティ (検証失敗) |
+| 429 | リクエストが多すぎます (レート制限を超過) |
+| 500 | 内部サーバーエラー |
+| 503 | サービス利用不可 |
 
-## Authentication
+## 認証
 
-All API endpoints (except `/auth/login`) require a valid JWT token.
+すべてのAPIエンドポイント（`/auth/login`を除く）には有効なJWTトークンが必要です。
 
-### Token Types
+### トークンタイプ
 
-- **Access Token**: Valid for 30 minutes, used for API requests
-- **Refresh Token**: Valid for 7 days, used to obtain new access tokens
+- **アクセストークン**: 30分間有効、APIリクエストに使用
+- **リフレッシュトークン**: 7日間有効、新しいアクセストークンを取得するために使用
 
-### Including Token in Requests
+### リクエストにトークンを含める
 
 ```http
 GET /api/v1/tasks HTTP/1.1
@@ -61,22 +61,22 @@ Host: yourdomain.com
 Authorization: Bearer <access_token>
 ```
 
-### Token Refresh Flow
+### トークンリフレッシュフロー
 
-When access token expires (401 response):
-1. Call `/api/v1/auth/refresh` with refresh token
-2. Receive new access token and refresh token
-3. Retry original request with new access token
+アクセストークンが期限切れの場合（401レスポンス）:
+1. リフレッシュトークンを使用して`/api/v1/auth/refresh`を呼び出す
+2. 新しいアクセストークンとリフレッシュトークンを受け取る
+3. 新しいアクセストークンで元のリクエストを再試行
 
-## API Endpoints
+## APIエンドポイント
 
-### Authentication API
+### 認証API
 
 #### POST /api/v1/auth/login
 
-Authenticate user via LDAP and receive JWT tokens.
+LDAP経由でユーザーを認証し、JWTトークンを受け取ります。
 
-**Request Body**:
+**リクエストボディ**:
 ```json
 {
   "username": "john.doe",
@@ -84,7 +84,7 @@ Authenticate user via LDAP and receive JWT tokens.
 }
 ```
 
-**Response** (200 OK):
+**レスポンス** (200 OK):
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -100,24 +100,24 @@ Authenticate user via LDAP and receive JWT tokens.
 }
 ```
 
-**Error Responses**:
-- `401`: Invalid credentials
-- `503`: LDAP server unavailable
+**エラーレスポンス**:
+- `401`: 認証情報が無効
+- `503`: LDAPサーバーが利用不可
 
 ---
 
 #### POST /api/v1/auth/refresh
 
-Refresh access token using refresh token.
+リフレッシュトークンを使用してアクセストークンを更新します。
 
-**Request Body**:
+**リクエストボディ**:
 ```json
 {
   "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
-**Response** (200 OK):
+**レスポンス** (200 OK):
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -127,18 +127,18 @@ Refresh access token using refresh token.
 }
 ```
 
-**Error Responses**:
-- `401`: Invalid or expired refresh token
+**エラーレスポンス**:
+- `401`: リフレッシュトークンが無効または期限切れ
 
 ---
 
 #### POST /api/v1/auth/logout
 
-Logout user (invalidate tokens on client side).
+ユーザーをログアウトします（クライアント側でトークンを無効化）。
 
-**Headers**: `Authorization: Bearer <token>`
+**ヘッダー**: `Authorization: Bearer <token>`
 
-**Response** (200 OK):
+**レスポンス** (200 OK):
 ```json
 {
   "message": "Logged out successfully"
@@ -149,11 +149,11 @@ Logout user (invalidate tokens on client side).
 
 #### GET /api/v1/auth/me
 
-Get current user information.
+現在のユーザー情報を取得します。
 
-**Headers**: `Authorization: Bearer <token>`
+**ヘッダー**: `Authorization: Bearer <token>`
 
-**Response** (200 OK):
+**レスポンス** (200 OK):
 ```json
 {
   "id": 1,
@@ -167,25 +167,25 @@ Get current user information.
 
 ---
 
-### Upload API
+### アップロードAPI
 
 #### POST /api/v1/upload
 
-Upload audio/video file for transcription.
+文字起こし用の音声/動画ファイルをアップロードします。
 
-**Headers**:
+**ヘッダー**:
 - `Authorization: Bearer <token>`
 - `Content-Type: multipart/form-data`
 
-**Request Body** (multipart/form-data):
+**リクエストボディ** (multipart/form-data):
 ```
 file: <binary file>
 model_name: "large-v3-turbo" | "large-v3"
-language: "ja" | "en" | "auto" (optional, default: "ja")
-num_speakers: 2 (optional, for speaker diarization)
+language: "ja" | "en" | "auto" (オプション、デフォルト: "ja")
+num_speakers: 2 (オプション、話者分離用)
 ```
 
-**Example cURL**:
+**cURL例**:
 ```bash
 curl -X POST https://yourdomain.com/api/v1/upload \
   -H "Authorization: Bearer <token>" \
@@ -195,7 +195,7 @@ curl -X POST https://yourdomain.com/api/v1/upload \
   -F "num_speakers=3"
 ```
 
-**Response** (201 Created):
+**レスポンス** (201 Created):
 ```json
 {
   "task_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -205,36 +205,36 @@ curl -X POST https://yourdomain.com/api/v1/upload \
 }
 ```
 
-**Validation Rules**:
-- **Supported formats**: MP3, WAV, M4A, FLAC, OGG, MP4, AVI, MOV, MKV
-- **Max file size**: 1GB (configurable via `MAX_FILE_SIZE` env var)
-- **Model names**: `large-v3`, `large-v3-turbo`
-- **Languages**: ISO 639-1 codes (ja, en, zh, etc.) or "auto"
-- **Num speakers**: 1-20
+**検証ルール**:
+- **サポートされている形式**: MP3, WAV, M4A, FLAC, OGG, MP4, AVI, MOV, MKV
+- **最大ファイルサイズ**: 1GB（環境変数`MAX_FILE_SIZE`で設定可能）
+- **モデル名**: `large-v3`, `large-v3-turbo`
+- **言語**: ISO 639-1コード（ja, en, zhなど）または"auto"
+- **話者数**: 1-20
 
-**Error Responses**:
-- `400`: Invalid file format or missing required fields
-- `413`: File too large
-- `422`: Validation failed
+**エラーレスポンス**:
+- `400`: ファイル形式が無効または必須フィールドが欠落
+- `413`: ファイルが大きすぎる
+- `422`: 検証失敗
 
 ---
 
-### Task Management API
+### タスク管理API
 
 #### GET /api/v1/tasks
 
-Get list of user's tasks.
+ユーザーのタスクリストを取得します。
 
-**Headers**: `Authorization: Bearer <token>`
+**ヘッダー**: `Authorization: Bearer <token>`
 
-**Query Parameters**:
-- `status` (optional): Filter by status (`pending`, `processing`, `completed`, `failed`)
-- `page` (optional): Page number (default: 1)
-- `page_size` (optional): Items per page (default: 20, max: 100)
-- `sort_by` (optional): Sort field (`created_at`, `status`), default: `created_at`
-- `sort_order` (optional): Sort order (`asc`, `desc`), default: `desc`
+**クエリパラメータ**:
+- `status` (オプション): ステータスでフィルタ（`pending`, `processing`, `completed`, `failed`）
+- `page` (オプション): ページ番号（デフォルト: 1）
+- `page_size` (オプション): 1ページあたりのアイテム数（デフォルト: 20、最大: 100）
+- `sort_by` (オプション): ソートフィールド（`created_at`, `status`）、デフォルト: `created_at`
+- `sort_order` (オプション): ソート順（`asc`, `desc`）、デフォルト: `desc`
 
-**Response** (200 OK):
+**レスポンス** (200 OK):
 ```json
 {
   "tasks": [
@@ -267,14 +267,14 @@ Get list of user's tasks.
 
 #### GET /api/v1/tasks/{task_id}
 
-Get detailed task information.
+詳細なタスク情報を取得します。
 
-**Headers**: `Authorization: Bearer <token>`
+**ヘッダー**: `Authorization: Bearer <token>`
 
-**Path Parameters**:
-- `task_id`: UUID of the task
+**パスパラメータ**:
+- `task_id`: タスクのUUID
 
-**Response** (200 OK):
+**レスポンス** (200 OK):
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
@@ -295,22 +295,22 @@ Get detailed task information.
 }
 ```
 
-**Error Responses**:
-- `403`: User does not have permission to access this task
-- `404`: Task not found
+**エラーレスポンス**:
+- `403`: ユーザーにこのタスクへのアクセス権限がありません
+- `404`: タスクが見つかりません
 
 ---
 
 #### GET /api/v1/tasks/{task_id}/status
 
-Get task status (lightweight endpoint for polling).
+タスクのステータスを取得します（ポーリング用の軽量エンドポイント）。
 
-**Headers**: `Authorization: Bearer <token>`
+**ヘッダー**: `Authorization: Bearer <token>`
 
-**Path Parameters**:
-- `task_id`: UUID of the task
+**パスパラメータ**:
+- `task_id`: タスクのUUID
 
-**Response** (200 OK):
+**レスポンス** (200 OK):
 ```json
 {
   "task_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -320,43 +320,43 @@ Get task status (lightweight endpoint for polling).
 }
 ```
 
-**Status Values**:
-- `pending`: Waiting in queue
-- `processing`: Currently being processed
-- `completed`: Successfully completed
-- `failed`: Processing failed
+**ステータス値**:
+- `pending`: キューで待機中
+- `processing`: 現在処理中
+- `completed`: 正常に完了
+- `failed`: 処理失敗
 
 ---
 
 #### DELETE /api/v1/tasks/{task_id}
 
-Delete a task and associated files.
+タスクと関連ファイルを削除します。
 
-**Headers**: `Authorization: Bearer <token>`
+**ヘッダー**: `Authorization: Bearer <token>`
 
-**Path Parameters**:
-- `task_id`: UUID of the task
+**パスパラメータ**:
+- `task_id`: タスクのUUID
 
-**Response** (204 No Content)
+**レスポンス** (204 No Content)
 
-**Error Responses**:
-- `403`: User does not have permission to delete this task
-- `404`: Task not found
+**エラーレスポンス**:
+- `403`: ユーザーにこのタスクを削除する権限がありません
+- `404`: タスクが見つかりません
 
 ---
 
-### Transcription API
+### 文字起こしAPI
 
 #### GET /api/v1/tasks/{task_id}/transcription
 
-Get transcription result for a completed task.
+完了したタスクの文字起こし結果を取得します。
 
-**Headers**: `Authorization: Bearer <token>`
+**ヘッダー**: `Authorization: Bearer <token>`
 
-**Path Parameters**:
-- `task_id`: UUID of the task
+**パスパラメータ**:
+- `task_id`: タスクのUUID
 
-**Response** (200 OK):
+**レスポンス** (200 OK):
 ```json
 {
   "id": 1,
@@ -387,31 +387,31 @@ Get transcription result for a completed task.
 }
 ```
 
-**Error Responses**:
-- `403`: User does not have permission to access this transcription
-- `404`: Task not found or transcription not available yet
+**エラーレスポンス**:
+- `403`: ユーザーにこの文字起こしへのアクセス権限がありません
+- `404`: タスクが見つからないか、文字起こしがまだ利用できません
 
 ---
 
 #### PUT /api/v1/tasks/{task_id}/transcription
 
-Update entire transcription text.
+文字起こしテキスト全体を更新します。
 
-**Headers**:
+**ヘッダー**:
 - `Authorization: Bearer <token>`
 - `Content-Type: application/json`
 
-**Path Parameters**:
-- `task_id`: UUID of the task
+**パスパラメータ**:
+- `task_id`: タスクのUUID
 
-**Request Body**:
+**リクエストボディ**:
 ```json
 {
   "transcription_text": "Updated full transcription text..."
 }
 ```
 
-**Response** (200 OK):
+**レスポンス** (200 OK):
 ```json
 {
   "id": 1,
@@ -428,16 +428,16 @@ Update entire transcription text.
 
 #### PATCH /api/v1/tasks/{task_id}/transcription/segments
 
-Update specific segments of transcription.
+文字起こしの特定のセグメントを更新します。
 
-**Headers**:
+**ヘッダー**:
 - `Authorization: Bearer <token>`
 - `Content-Type: application/json`
 
-**Path Parameters**:
-- `task_id`: UUID of the task
+**パスパラメータ**:
+- `task_id`: タスクのUUID
 
-**Request Body**:
+**リクエストボディ**:
 ```json
 {
   "segments": [
@@ -454,7 +454,7 @@ Update specific segments of transcription.
 }
 ```
 
-**Response** (200 OK):
+**レスポンス** (200 OK):
 ```json
 {
   "updated_count": 2,
@@ -466,21 +466,21 @@ Update specific segments of transcription.
 
 #### GET /api/v1/tasks/{task_id}/subtitle
 
-Download subtitle file.
+字幕ファイルをダウンロードします。
 
-**Headers**: `Authorization: Bearer <token>`
+**ヘッダー**: `Authorization: Bearer <token>`
 
-**Path Parameters**:
-- `task_id`: UUID of the task
+**パスパラメータ**:
+- `task_id`: タスクのUUID
 
-**Query Parameters**:
-- `format`: Subtitle format (`srt` or `vtt`), default: `srt`
+**クエリパラメータ**:
+- `format`: 字幕形式（`srt`または`vtt`）、デフォルト: `srt`
 
-**Response** (200 OK):
-- **Content-Type**: `text/plain` (SRT) or `text/vtt` (WebVTT)
+**レスポンス** (200 OK):
+- **Content-Type**: `text/plain` (SRT) または `text/vtt` (WebVTT)
 - **Content-Disposition**: `attachment; filename="transcription.srt"`
 
-**SRT Format Example**:
+**SRT形式の例**:
 ```
 1
 00:00:00,000 --> 00:00:05,500
@@ -491,7 +491,7 @@ Download subtitle file.
 [Speaker 2] では、まずプロジェクトの進捗について報告します。
 ```
 
-**WebVTT Format Example**:
+**WebVTT形式の例**:
 ```
 WEBVTT
 
@@ -504,23 +504,23 @@ WEBVTT
 
 ---
 
-### History API
+### 履歴API
 
 #### GET /api/v1/history
 
-Get processing history for current user.
+現在のユーザーの処理履歴を取得します。
 
-**Headers**: `Authorization: Bearer <token>`
+**ヘッダー**: `Authorization: Bearer <token>`
 
-**Query Parameters**:
-- `page` (optional): Page number (default: 1)
-- `page_size` (optional): Items per page (default: 20, max: 100)
-- `success` (optional): Filter by success status (`true`, `false`)
-- `model_name` (optional): Filter by model name
-- `start_date` (optional): Filter by start date (ISO 8601 format)
-- `end_date` (optional): Filter by end date (ISO 8601 format)
+**クエリパラメータ**:
+- `page` (オプション): ページ番号（デフォルト: 1）
+- `page_size` (オプション): 1ページあたりのアイテム数（デフォルト: 20、最大: 100）
+- `success` (オプション): 成功ステータスでフィルタ（`true`, `false`）
+- `model_name` (オプション): モデル名でフィルタ
+- `start_date` (オプション): 開始日でフィルタ（ISO 8601形式）
+- `end_date` (オプション): 終了日でフィルタ（ISO 8601形式）
 
-**Response** (200 OK):
+**レスポンス** (200 OK):
 ```json
 {
   "history": [
@@ -551,14 +551,14 @@ Get processing history for current user.
 
 #### GET /api/v1/history/{id}
 
-Get detailed processing history entry.
+詳細な処理履歴エントリを取得します。
 
-**Headers**: `Authorization: Bearer <token>`
+**ヘッダー**: `Authorization: Bearer <token>`
 
-**Path Parameters**:
-- `id`: History entry ID
+**パスパラメータ**:
+- `id`: 履歴エントリID
 
-**Response** (200 OK):
+**レスポンス** (200 OK):
 ```json
 {
   "id": 1,
@@ -584,16 +584,16 @@ Get detailed processing history entry.
 
 #### GET /api/v1/history/stats/me
 
-Get processing statistics for current user.
+現在のユーザーの処理統計を取得します。
 
-**Headers**: `Authorization: Bearer <token>`
+**ヘッダー**: `Authorization: Bearer <token>`
 
-**Query Parameters**:
-- `start_date` (optional): Start date for statistics (ISO 8601 format)
-- `end_date` (optional): End date for statistics (ISO 8601 format)
-- `period` (optional): Predefined period (`today`, `week`, `month`, `year`)
+**クエリパラメータ**:
+- `start_date` (オプション): 統計の開始日（ISO 8601形式）
+- `end_date` (オプション): 統計の終了日（ISO 8601形式）
+- `period` (オプション): 事前定義された期間（`today`, `week`, `month`, `year`）
 
-**Response** (200 OK):
+**レスポンス** (200 OK):
 ```json
 {
   "total_tasks": 50,
@@ -618,17 +618,17 @@ Get processing statistics for current user.
 
 ---
 
-### Admin API
+### 管理者API
 
-All admin endpoints require `is_admin: true` in user profile.
+すべての管理者エンドポイントにはユーザープロファイルに`is_admin: true`が必要です。
 
 #### GET /api/v1/admin/dashboard
 
-Get dashboard statistics (admin only).
+ダッシュボード統計を取得します（管理者のみ）。
 
-**Headers**: `Authorization: Bearer <admin_token>`
+**ヘッダー**: `Authorization: Bearer <admin_token>`
 
-**Response** (200 OK):
+**レスポンス** (200 OK):
 ```json
 {
   "total_users": 20,
@@ -664,18 +664,18 @@ Get dashboard statistics (admin only).
 }
 ```
 
-**Error Responses**:
-- `403`: User is not an admin
+**エラーレスポンス**:
+- `403`: ユーザーは管理者ではありません
 
 ---
 
 #### GET /api/v1/admin/system-status
 
-Get system status information (admin only).
+システムステータス情報を取得します（管理者のみ）。
 
-**Headers**: `Authorization: Bearer <admin_token>`
+**ヘッダー**: `Authorization: Bearer <admin_token>`
 
-**Response** (200 OK):
+**レスポンス** (200 OK):
 ```json
 {
   "gpu_available": true,
@@ -697,16 +697,16 @@ Get system status information (admin only).
 
 #### GET /api/v1/admin/users
 
-Get list of all users (admin only).
+すべてのユーザーのリストを取得します（管理者のみ）。
 
-**Headers**: `Authorization: Bearer <admin_token>`
+**ヘッダー**: `Authorization: Bearer <admin_token>`
 
-**Query Parameters**:
-- `page` (optional): Page number (default: 1)
-- `page_size` (optional): Items per page (default: 20, max: 100)
-- `is_admin` (optional): Filter by admin status (`true`, `false`)
+**クエリパラメータ**:
+- `page` (オプション): ページ番号（デフォルト: 1）
+- `page_size` (オプション): 1ページあたりのアイテム数（デフォルト: 20、最大: 100）
+- `is_admin` (オプション): 管理者ステータスでフィルタ（`true`, `false`）
 
-**Response** (200 OK):
+**レスポンス** (200 OK):
 ```json
 {
   "users": [
@@ -735,19 +735,19 @@ Get list of all users (admin only).
 
 #### GET /api/v1/admin/tasks
 
-Get all tasks from all users (admin only).
+すべてのユーザーのすべてのタスクを取得します（管理者のみ）。
 
-**Headers**: `Authorization: Bearer <admin_token>`
+**ヘッダー**: `Authorization: Bearer <admin_token>`
 
-**Query Parameters**:
-- `page` (optional): Page number (default: 1)
-- `page_size` (optional): Items per page (default: 20, max: 100)
-- `status` (optional): Filter by status
-- `user_id` (optional): Filter by user ID
-- `start_date` (optional): Filter by start date
-- `end_date` (optional): Filter by end date
+**クエリパラメータ**:
+- `page` (オプション): ページ番号（デフォルト: 1）
+- `page_size` (オプション): 1ページあたりのアイテム数（デフォルト: 20、最大: 100）
+- `status` (オプション): ステータスでフィルタ
+- `user_id` (オプション): ユーザーIDでフィルタ
+- `start_date` (オプション): 開始日でフィルタ
+- `end_date` (オプション): 終了日でフィルタ
 
-**Response** (200 OK):
+**レスポンス** (200 OK):
 ```json
 {
   "tasks": [
@@ -775,16 +775,16 @@ Get all tasks from all users (admin only).
 
 #### GET /api/v1/admin/stats
 
-Get overall system statistics (admin only).
+全体的なシステム統計を取得します（管理者のみ）。
 
-**Headers**: `Authorization: Bearer <admin_token>`
+**ヘッダー**: `Authorization: Bearer <admin_token>`
 
-**Query Parameters**:
-- `start_date` (optional): Start date (ISO 8601)
-- `end_date` (optional): End date (ISO 8601)
-- `period` (optional): Predefined period (`today`, `week`, `month`, `year`)
+**クエリパラメータ**:
+- `start_date` (オプション): 開始日（ISO 8601）
+- `end_date` (オプション): 終了日（ISO 8601）
+- `period` (オプション): 事前定義された期間（`today`, `week`, `month`, `year`）
 
-**Response** (200 OK):
+**レスポンス** (200 OK):
 ```json
 {
   "total_tasks": 150,
@@ -803,13 +803,13 @@ Get overall system statistics (admin only).
 
 ---
 
-### Health Check API
+### ヘルスチェックAPI
 
 #### GET /health
 
-Check API health status (no authentication required).
+APIのヘルスステータスを確認します（認証不要）。
 
-**Response** (200 OK):
+**レスポンス** (200 OK):
 ```json
 {
   "status": "healthy",
@@ -820,7 +820,7 @@ Check API health status (no authentication required).
 
 ---
 
-## Data Models
+## データモデル
 
 ### User
 
@@ -898,9 +898,9 @@ Check API health status (no authentication required).
 }
 ```
 
-## Error Responses
+## エラーレスポンス
 
-All error responses follow this format:
+すべてのエラーレスポンスは以下の形式に従います:
 
 ```json
 {
@@ -910,23 +910,23 @@ All error responses follow this format:
 }
 ```
 
-### Common Error Codes
+### 一般的なエラーコード
 
-| Code | HTTP Status | Description |
+| コード | HTTPステータス | 説明 |
 |------|-------------|-------------|
-| `INVALID_CREDENTIALS` | 401 | Invalid username or password |
-| `TOKEN_EXPIRED` | 401 | Access token has expired |
-| `INVALID_TOKEN` | 401 | Invalid or malformed token |
-| `INSUFFICIENT_PERMISSIONS` | 403 | User lacks required permissions |
-| `RESOURCE_NOT_FOUND` | 404 | Requested resource does not exist |
-| `FILE_TOO_LARGE` | 413 | Uploaded file exceeds size limit |
-| `INVALID_FILE_FORMAT` | 400 | Unsupported file format |
-| `VALIDATION_ERROR` | 422 | Request validation failed |
-| `RATE_LIMIT_EXCEEDED` | 429 | Too many requests |
-| `GPU_UNAVAILABLE` | 503 | GPU is not available |
-| `LDAP_UNAVAILABLE` | 503 | LDAP server is unavailable |
+| `INVALID_CREDENTIALS` | 401 | ユーザー名またはパスワードが無効 |
+| `TOKEN_EXPIRED` | 401 | アクセストークンが期限切れ |
+| `INVALID_TOKEN` | 401 | トークンが無効または不正な形式 |
+| `INSUFFICIENT_PERMISSIONS` | 403 | ユーザーに必要な権限がありません |
+| `RESOURCE_NOT_FOUND` | 404 | リクエストされたリソースが存在しません |
+| `FILE_TOO_LARGE` | 413 | アップロードされたファイルがサイズ制限を超えています |
+| `INVALID_FILE_FORMAT` | 400 | サポートされていないファイル形式 |
+| `VALIDATION_ERROR` | 422 | リクエストの検証に失敗しました |
+| `RATE_LIMIT_EXCEEDED` | 429 | リクエストが多すぎます |
+| `GPU_UNAVAILABLE` | 503 | GPUが利用できません |
+| `LDAP_UNAVAILABLE` | 503 | LDAPサーバーが利用できません |
 
-### Validation Error Response
+### 検証エラーレスポンス
 
 ```json
 {
@@ -940,15 +940,15 @@ All error responses follow this format:
 }
 ```
 
-## Rate Limiting
+## レート制限
 
-### API Rate Limits
+### APIレート制限
 
-- **General API endpoints**: 10 requests/second per IP
-- **File upload endpoint**: 2 requests/second per IP
-- **Burst limit**: 20 requests for general endpoints, 5 for uploads
+- **一般的なAPIエンドポイント**: IP毎に10リクエスト/秒
+- **ファイルアップロードエンドポイント**: IP毎に2リクエスト/秒
+- **バースト制限**: 一般的なエンドポイントで20リクエスト、アップロードで5リクエスト
 
-### Rate Limit Headers
+### レート制限ヘッダー
 
 ```http
 X-RateLimit-Limit: 10
@@ -956,7 +956,7 @@ X-RateLimit-Remaining: 8
 X-RateLimit-Reset: 1634132400
 ```
 
-### Rate Limit Exceeded Response
+### レート制限超過レスポンス
 
 ```json
 {
@@ -966,14 +966,14 @@ X-RateLimit-Reset: 1634132400
 }
 ```
 
-## Pagination
+## ページネーション
 
-Endpoints that return lists support pagination with these parameters:
+リストを返すエンドポイントは以下のパラメータでページネーションをサポートします:
 
-- `page`: Page number (starting from 1)
-- `page_size`: Number of items per page (max: 100)
+- `page`: ページ番号（1から開始）
+- `page_size`: 1ページあたりのアイテム数（最大: 100）
 
-Pagination response format:
+ページネーションレスポンス形式:
 
 ```json
 {
@@ -987,52 +987,52 @@ Pagination response format:
 }
 ```
 
-## Filtering and Sorting
+## フィルタリングとソート
 
-Many list endpoints support filtering and sorting:
+多くのリストエンドポイントはフィルタリングとソートをサポートしています:
 
-**Filtering**:
+**フィルタリング**:
 - `status=completed`
 - `success=true`
 - `model_name=large-v3-turbo`
 
-**Sorting**:
+**ソート**:
 - `sort_by=created_at`
 - `sort_order=desc`
 
-**Example**:
+**例**:
 ```
 GET /api/v1/tasks?status=completed&sort_by=created_at&sort_order=desc&page=1&page_size=20
 ```
 
-## WebSocket API (Future Feature)
+## WebSocket API（将来の機能）
 
-Real-time transcription status updates will be available via WebSocket in a future release.
+リアルタイムの文字起こしステータス更新は、将来のリリースでWebSocket経由で利用可能になります。
 
-**Endpoint**: `wss://yourdomain.com/ws/tasks/{task_id}`
+**エンドポイント**: `wss://yourdomain.com/ws/tasks/{task_id}`
 
-**Authentication**: Token passed as query parameter (`?token=<access_token>`)
+**認証**: トークンをクエリパラメータとして渡します（`?token=<access_token>`）
 
-## SDK and Client Libraries
+## SDKとクライアントライブラリ
 
-Official client libraries:
-- Python SDK (coming soon)
-- JavaScript/TypeScript SDK (coming soon)
-- Go SDK (coming soon)
+公式クライアントライブラリ:
+- Python SDK（近日公開）
+- JavaScript/TypeScript SDK（近日公開）
+- Go SDK（近日公開）
 
-## API Changelog
+## API変更履歴
 
-### Version 1.0.0 (2025-10-13)
-- Initial API release
-- Authentication API
-- Upload API
-- Task Management API
-- Transcription API
-- History API
-- Admin API
+### バージョン 1.0.0 (2025-10-13)
+- 初期APIリリース
+- 認証API
+- アップロードAPI
+- タスク管理API
+- 文字起こしAPI
+- 履歴API
+- 管理者API
 
-## Support
+## サポート
 
-- **API Documentation**: https://yourdomain.com/docs (Swagger UI)
+- **APIドキュメント**: https://yourdomain.com/docs (Swagger UI)
 - **GitHub Issues**: https://github.com/your-org/whisper-app/issues
-- **Contact**: api-support@company.com
+- **お問い合わせ**: api-support@company.com

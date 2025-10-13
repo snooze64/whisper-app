@@ -1,124 +1,124 @@
-# Troubleshooting Guide
+# トラブルシューティングガイド
 
-Common issues and solutions for the Whisper App production deployment.
+Whisper App本番環境デプロイメントにおける一般的な問題と解決策。
 
-## Table of Contents
+## 目次
 
-1. [Quick Diagnostics](#quick-diagnostics)
-2. [Service Issues](#service-issues)
-3. [Authentication Issues](#authentication-issues)
-4. [File Upload Issues](#file-upload-issues)
-5. [Transcription Issues](#transcription-issues)
-6. [GPU Issues](#gpu-issues)
-7. [Database Issues](#database-issues)
-8. [Network Issues](#network-issues)
-9. [Performance Issues](#performance-issues)
-10. [Frontend Issues](#frontend-issues)
+1. [クイック診断](#クイック診断)
+2. [サービスの問題](#サービスの問題)
+3. [認証の問題](#認証の問題)
+4. [ファイルアップロードの問題](#ファイルアップロードの問題)
+5. [文字起こしの問題](#文字起こしの問題)
+6. [GPUの問題](#gpuの問題)
+7. [データベースの問題](#データベースの問題)
+8. [ネットワークの問題](#ネットワークの問題)
+9. [パフォーマンスの問題](#パフォーマンスの問題)
+10. [フロントエンドの問題](#フロントエンドの問題)
 
-## Quick Diagnostics
+## クイック診断
 
-### Check All Services
+### 全サービスの確認
 
 ```bash
-# Check service status
+# サービスのステータス確認
 docker-compose -f docker-compose.prod.yml ps
 
-# Check logs for errors
+# エラーログの確認
 docker-compose -f docker-compose.prod.yml logs --tail=100 | grep -i error
 
-# Check resource usage
+# リソース使用状況の確認
 docker stats
 
-# Check disk space
+# ディスク容量の確認
 df -h
 ```
 
-### Test API Health
+### API ヘルスチェック
 
 ```bash
-# Test health endpoint
+# ヘルスエンドポイントのテスト
 curl https://yourdomain.com/health
 
-# Expected: {"status": "healthy"}
+# 期待される結果: {"status": "healthy"}
 ```
 
-## Service Issues
+## サービスの問題
 
-### Issue: Services Won't Start
+### 問題: サービスが起動しない
 
-**Symptoms**:
-- `docker-compose up` fails
-- Containers exit immediately
-- "Port already in use" errors
+**症状**:
+- `docker-compose up` が失敗する
+- コンテナがすぐに終了する
+- "Port already in use" エラー
 
-**Solutions**:
+**解決策**:
 
-1. **Check for port conflicts**:
+1. **ポートの競合を確認**:
 ```bash
-# Check if ports are in use
+# ポートが使用中かどうか確認
 lsof -i :80  # HTTP
 lsof -i :443 # HTTPS
 lsof -i :5432 # PostgreSQL
 lsof -i :6379 # Redis
 
-# Kill conflicting processes if needed
+# 必要に応じて競合するプロセスを終了
 kill -9 <PID>
 ```
 
-2. **Check Docker daemon**:
+2. **Docker デーモンの確認**:
 ```bash
 sudo systemctl status docker
 sudo systemctl restart docker
 ```
 
-3. **Rebuild containers**:
+3. **コンテナの再ビルド**:
 ```bash
 docker-compose -f docker-compose.prod.yml down
 docker-compose -f docker-compose.prod.yml up -d --build
 ```
 
-### Issue: Container Keeps Restarting
+### 問題: コンテナが再起動を繰り返す
 
-**Symptoms**:
-- Container status shows "Restarting"
-- Service is unstable
+**症状**:
+- コンテナのステータスが "Restarting" と表示される
+- サービスが不安定
 
-**Solutions**:
+**解決策**:
 
-1. **Check container logs**:
+1. **コンテナログの確認**:
 ```bash
 docker-compose -f docker-compose.prod.yml logs --tail=200 <service_name>
 ```
 
-2. **Check environment variables**:
+2. **環境変数の確認**:
 ```bash
-# Verify .env file exists and has correct values
+# .env ファイルが存在し、正しい値が設定されているか確認
 cat .env | grep -v PASSWORD | grep -v SECRET
 ```
 
-3. **Increase memory limits** in `docker-compose.prod.yml`:
+3. **メモリ制限の増加** (`docker-compose.prod.yml` 内):
 ```yaml
 services:
   backend:
     deploy:
       resources:
         limits:
-          memory: 8G  # Increase from 4G
+          memory: 8G  # 4Gから増加
 ```
 
-## Authentication Issues
+## 認証の問題
 
-### Issue: Cannot Login
+### 問題: ログインできない
 
-**Symptoms**:
-- "Invalid credentials" error
-- Login succeeds but immediately fails
+**症状**:
+- "Invalid credentials" エラー
+- ログインは成功するがすぐに失敗する
 
-**Solutions**:
+**解決策**:
 
-1. **Check LDAP connectivity**:
+1. **LDAP接続性の確認**:
 ```bash
-# Test LDAP connection from backend container
+# バックエンドコンテナからLDAP接続をテスト
 docker-compose -f docker-compose.prod.yml exec backend ldapsearch \
   -x \
   -H ldap://your-ldap-server:389 \
@@ -127,144 +127,144 @@ docker-compose -f docker-compose.prod.yml exec backend ldapsearch \
   -b "dc=example,dc=com"
 ```
 
-2. **Verify LDAP configuration** in `.env`:
+2. **LDAP設定の確認** (`.env` ファイル):
 ```bash
 cat .env | grep LDAP
 ```
 
-3. **Check backend logs for LDAP errors**:
+3. **LDAPエラーのバックエンドログ確認**:
 ```bash
 docker-compose -f docker-compose.prod.yml logs backend | grep -i ldap
 ```
 
-### Issue: Admin Functions Not Working
+### 問題: 管理者機能が動作しない
 
-**Symptoms**:
-- "Forbidden" errors on admin endpoints
-- Admin user cannot access admin dashboard
+**症状**:
+- 管理者エンドポイントで "Forbidden" エラー
+- 管理者ユーザーが管理者ダッシュボードにアクセスできない
 
-**Solutions**:
+**解決策**:
 
-1. **Verify user is admin**:
+1. **ユーザーが管理者かどうか確認**:
 ```bash
 docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "SELECT id, username, is_admin FROM users WHERE username = 'admin_user';"
 ```
 
-2. **Set user as admin**:
+2. **ユーザーを管理者に設定**:
 ```bash
 docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "UPDATE users SET is_admin = true WHERE username = 'admin_user';"
 ```
 
-## File Upload Issues
+## ファイルアップロードの問題
 
-### Issue: File Upload Fails
+### 問題: ファイルアップロードが失敗する
 
-**Symptoms**:
-- "413 Payload Too Large" error
-- Upload progress sticks at certain percentage
-- "Unsupported file format" error
+**症状**:
+- "413 Payload Too Large" エラー
+- アップロードの進行状況が特定のパーセンテージで停止する
+- "Unsupported file format" エラー
 
-**Solutions**:
+**解決策**:
 
-1. **Check file size limit**:
+1. **ファイルサイズ制限の確認**:
 ```bash
-# Check MAX_FILE_SIZE in .env
+# .envファイルのMAX_FILE_SIZEを確認
 cat .env | grep MAX_FILE_SIZE
 
-# Default is 1GB (1073741824 bytes)
+# デフォルトは1GB (1073741824バイト)
 ```
 
-2. **Check Nginx upload limit**:
+2. **Nginxアップロード制限の確認**:
 ```bash
-# Check client_max_body_size in nginx.prod.conf
+# nginx.prod.confのclient_max_body_sizeを確認
 grep client_max_body_size nginx/nginx.prod.conf
 
-# Should be slightly larger than MAX_FILE_SIZE (e.g., 1100M)
+# MAX_FILE_SIZEより少し大きい値である必要があります（例: 1100M）
 ```
 
-3. **Verify file format is supported**:
+3. **サポートされているファイル形式か確認**:
 ```
-Supported audio: MP3, WAV, M4A, FLAC, OGG
-Supported video: MP4, AVI, MOV, MKV
+サポートされているオーディオ: MP3, WAV, M4A, FLAC, OGG
+サポートされているビデオ: MP4, AVI, MOV, MKV
 ```
 
-## Transcription Issues
+## 文字起こしの問題
 
-### Issue: Transcription Fails
+### 問題: 文字起こしが失敗する
 
-**Symptoms**:
-- Task status shows "failed"
-- No transcription result available
+**症状**:
+- タスクのステータスが "failed" と表示される
+- 文字起こし結果が利用できない
 
-**Solutions**:
+**解決策**:
 
-1. **Check Celery worker logs**:
+1. **Celeryワーカーログの確認**:
 ```bash
 docker-compose -f docker-compose.prod.yml logs celery-worker --tail=200
 ```
 
-2. **Check task error message**:
+2. **タスクのエラーメッセージを確認**:
 ```bash
 docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "SELECT id, filename, status, error_message FROM tasks WHERE status = 'failed' ORDER BY created_at DESC LIMIT 5;"
 ```
 
-3. **Common errors**:
+3. **よくあるエラー**:
 
-**Error: "Out of memory"**
-- Solution: Reduce concurrent tasks or increase GPU memory
+**エラー: "Out of memory"**
+- 解決策: 同時実行タスク数を減らすかGPUメモリを増やす
 
-**Error: "FFmpeg failed"**
-- Solution: Check audio extraction
+**エラー: "FFmpeg failed"**
+- 解決策: 音声抽出を確認
 ```bash
 docker-compose -f docker-compose.prod.yml exec celery-worker ffmpeg -i /data/uploads/1/file.mp4 -vn -acodec pcm_s16le -ar 16000 /tmp/test.wav
 ```
 
-### Issue: Transformers Backend Not Working
+### 問題: Transformersバックエンドが動作しない
 
-**Symptoms**:
-- "transformers library not available" in logs
-- Mock transcription appears instead of real transcription
+**症状**:
+- ログに "transformers library not available" と表示される
+- 実際の文字起こしの代わりにモック文字起こしが表示される
 - "Can't instantiate WhisperForConditionalGeneration model under dtype=torch.int8"
 
-**Solutions**:
+**解決策**:
 
-1. **Check if transformers is installed**:
+1. **transformersがインストールされているか確認**:
 ```bash
 docker-compose exec celery-worker python -c "import transformers; print(transformers.__version__)"
 
-# If not installed:
+# インストールされていない場合:
 docker-compose exec celery-worker pip install transformers==4.35.2 accelerate==0.24.1 safetensors==0.4.1
 ```
 
-2. **Verify WHISPER_BACKEND environment variable**:
+2. **WHISPER_BACKEND環境変数の確認**:
 ```bash
 docker-compose exec celery-worker printenv | grep WHISPER_BACKEND
 
-# Should output: WHISPER_BACKEND=transformers
+# 出力されるべき内容: WHISPER_BACKEND=transformers
 ```
 
-If not set, add to `docker-compose.yml`:
+設定されていない場合、`docker-compose.yml` に追加:
 ```yaml
 celery-worker:
   environment:
     - WHISPER_BACKEND=transformers
 ```
 
-3. **Restart celery-worker after changes**:
+3. **変更後にcelery-workerを再起動**:
 ```bash
 docker-compose restart celery-worker
 ```
 
-4. **int8 dtype error (already fixed)**:
-This error is automatically handled. The system falls back to float32 when int8 is requested.
-Check logs for warning: "int8 dtype not supported for Whisper models, using float32 instead"
+4. **int8 dtypeエラー（すでに修正済み）**:
+このエラーは自動的に処理されます。int8が要求された場合、システムはfloat32にフォールバックします。
+ログで次の警告を確認: "int8 dtype not supported for Whisper models, using float32 instead"
 
-5. **Test transformers backend manually**:
+5. **transformersバックエンドを手動でテスト**:
 ```bash
 docker-compose exec celery-worker python /tmp/test_transformers.py
 ```
 
-Create `/tmp/test_transformers.py`:
+`/tmp/test_transformers.py` を作成:
 ```python
 import os
 os.environ['WHISPER_BACKEND'] = 'transformers'
@@ -277,55 +277,55 @@ transcriber.load_model()
 print("✅ Model loaded successfully")
 ```
 
-### Issue: CUDA 11.4 Compatibility
+### 問題: CUDA 11.4互換性
 
-**Symptoms**:
-- faster-whisper fails with "CUDA 11.8+ required"
-- CTranslate2 errors mentioning CUDA version
+**症状**:
+- faster-whisperが "CUDA 11.8+ required" で失敗する
+- CUDAバージョンに関するCTranslate2エラー
 
-**Solutions**:
+**解決策**:
 
-1. **Check CUDA version**:
+1. **CUDAバージョンの確認**:
 ```bash
 nvidia-smi | grep "CUDA Version"
 ```
 
-2. **If CUDA 11.4, switch to transformers backend**:
+2. **CUDA 11.4の場合、transformersバックエンドに切り替え**:
 ```yaml
 # docker-compose.yml
 celery-worker:
   environment:
-    - WHISPER_BACKEND=transformers  # Required for CUDA 11.4
+    - WHISPER_BACKEND=transformers  # CUDA 11.4に必要
 ```
 
-3. **Install CUDA 11.4 compatible dependencies**:
+3. **CUDA 11.4互換の依存関係をインストール**:
 ```bash
 docker-compose exec celery-worker pip install -r requirements-transformers-cuda114.txt
 ```
 
-See [setup-guide.md](./setup-guide.md) Section "CUDA 11.4 Specific Setup" for detailed instructions.
+詳細な手順については、[setup-guide.md](./setup-guide.md) の「CUDA 11.4固有のセットアップ」セクションを参照してください。
 
-**Performance Note**:
-- transformers backend is 2-4x slower than faster-whisper
-- Uses 1.5-2x more VRAM
-- Only use if CUDA 11.4 is required (prefer CUDA 11.8+ for faster-whisper)
+**パフォーマンスに関する注意**:
+- transformersバックエンドはfaster-whisperより2〜4倍遅い
+- VRAMを1.5〜2倍多く使用する
+- CUDA 11.4が必要な場合のみ使用（faster-whisperにはCUDA 11.8+を推奨）
 
-## GPU Issues
+## GPUの問題
 
-### Issue: GPU Not Detected
+### 問題: GPUが検出されない
 
-**Symptoms**:
-- "GPU unavailable" error
-- Tasks use CPU instead of GPU (very slow)
+**症状**:
+- "GPU unavailable" エラー
+- タスクがGPUではなくCPUを使用（非常に遅い）
 
-**Solutions**:
+**解決策**:
 
-1. **Check NVIDIA driver on host**:
+1. **ホスト上のNVIDIAドライバーを確認**:
 ```bash
 nvidia-smi
 ```
 
-2. **Install NVIDIA Container Toolkit**:
+2. **NVIDIA Container Toolkitのインストール**:
 ```bash
 # Ubuntu/Debian
 sudo apt-get update
@@ -333,25 +333,25 @@ sudo apt-get install -y nvidia-container-toolkit
 sudo systemctl restart docker
 ```
 
-3. **Test GPU access in Docker**:
+3. **Docker内でのGPUアクセスをテスト**:
 ```bash
 docker run --rm --gpus all nvidia/cuda:11.8.0-base-ubuntu22.04 nvidia-smi
 ```
 
-### Issue: Out of GPU Memory
+### 問題: GPUメモリ不足
 
-**Symptoms**:
-- Tasks fail with "CUDA out of memory"
-- GPU memory full
+**症状**:
+- タスクが "CUDA out of memory" で失敗する
+- GPUメモリがフル
 
-**Solutions**:
+**解決策**:
 
-1. **Check GPU memory usage**:
+1. **GPUメモリ使用状況の確認**:
 ```bash
 docker-compose -f docker-compose.prod.yml exec celery-worker nvidia-smi
 ```
 
-2. **Reduce concurrent tasks**:
+2. **同時実行タスク数を減らす**:
 ```yaml
 # docker-compose.prod.yml
 services:
@@ -359,131 +359,131 @@ services:
     command: celery -A app.celery_app worker --loglevel=info --concurrency=1
 ```
 
-3. **Use smaller Whisper model**:
-- `large-v3-turbo` uses ~10GB VRAM
-- `large-v3` uses ~12GB VRAM
+3. **より小さいWhisperモデルを使用**:
+- `large-v3-turbo` は約10GBのVRAMを使用
+- `large-v3` は約12GBのVRAMを使用
 
-## Database Issues
+## データベースの問題
 
-### Issue: Database Connection Errors
+### 問題: データベース接続エラー
 
-**Symptoms**:
-- "Could not connect to database"
-- Connection timeout errors
+**症状**:
+- "Could not connect to database" エラー
+- 接続タイムアウトエラー
 
-**Solutions**:
+**解決策**:
 
-1. **Check PostgreSQL is running**:
+1. **PostgreSQLが実行中か確認**:
 ```bash
 docker-compose -f docker-compose.prod.yml ps postgres
 docker-compose -f docker-compose.prod.yml logs postgres
 ```
 
-2. **Check DATABASE_URL** in `.env`:
+2. **DATABASE_URLの確認** (`.env` ファイル):
 ```bash
 cat .env | grep DATABASE_URL
-# Should be: postgresql+asyncpg://user:pass@postgres:5432/whisper_prod
+# 次のようになっているべき: postgresql+asyncpg://user:pass@postgres:5432/whisper_prod
 ```
 
-3. **Test connection manually**:
+3. **手動で接続をテスト**:
 ```bash
 docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "SELECT 1;"
 ```
 
-### Issue: Database Running Slowly
+### 問題: データベースの動作が遅い
 
-**Symptoms**:
-- Slow API responses
-- Query timeouts
+**症状**:
+- APIレスポンスが遅い
+- クエリタイムアウト
 
-**Solutions**:
+**解決策**:
 
-1. **Run VACUUM and ANALYZE**:
+1. **VACUUMとANALYZEの実行**:
 ```bash
 docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "VACUUM ANALYZE;"
 ```
 
-2. **Check database size**:
+2. **データベースサイズの確認**:
 ```bash
 docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "SELECT pg_size_pretty(pg_database_size('whisper_prod'));"
 ```
 
-3. **Restart PostgreSQL**:
+3. **PostgreSQLの再起動**:
 ```bash
 docker-compose -f docker-compose.prod.yml restart postgres
 ```
 
-## Network Issues
+## ネットワークの問題
 
-### Issue: Cannot Access Application
+### 問題: アプリケーションにアクセスできない
 
-**Symptoms**:
-- Cannot open https://yourdomain.com
-- Connection timeout
+**症状**:
+- https://yourdomain.com を開けない
+- 接続タイムアウト
 
-**Solutions**:
+**解決策**:
 
-1. **Check Nginx is running**:
+1. **Nginxが実行中か確認**:
 ```bash
 docker-compose -f docker-compose.prod.yml ps nginx
 docker-compose -f docker-compose.prod.yml logs nginx
 ```
 
-2. **Check firewall rules**:
+2. **ファイアウォールルールの確認**:
 ```bash
 sudo ufw status
-# Should allow ports 80 and 443
+# ポート80と443を許可する必要がある
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
 ```
 
-3. **Check DNS resolution**:
+3. **DNS解決の確認**:
 ```bash
 nslookup yourdomain.com
 dig yourdomain.com
 ```
 
-### Issue: SSL Certificate Errors
+### 問題: SSL証明書エラー
 
-**Symptoms**:
-- "Certificate not trusted" error
-- SSL handshake failure
+**症状**:
+- "Certificate not trusted" エラー
+- SSLハンドシェイク失敗
 
-**Solutions**:
+**解決策**:
 
-1. **Check certificate validity**:
+1. **証明書の有効性を確認**:
 ```bash
 echo | openssl s_client -servername yourdomain.com -connect yourdomain.com:443 2>/dev/null | openssl x509 -noout -dates
 ```
 
-2. **Renew Let's Encrypt certificate**:
+2. **Let's Encrypt証明書の更新**:
 ```bash
 docker-compose -f docker-compose.prod.yml run --rm certbot renew
 docker-compose -f docker-compose.prod.yml exec nginx nginx -s reload
 ```
 
-3. **Check certificate files exist**:
+3. **証明書ファイルが存在するか確認**:
 ```bash
 ls -la certbot/conf/live/yourdomain.com/
 ```
 
-## Performance Issues
+## パフォーマンスの問題
 
-### Issue: High CPU Usage
+### 問題: CPU使用率が高い
 
-**Symptoms**:
-- Server running hot
-- Slow response times
+**症状**:
+- サーバーが高温になる
+- レスポンス時間が遅い
 
-**Solutions**:
+**解決策**:
 
-1. **Check CPU usage**:
+1. **CPU使用状況の確認**:
 ```bash
 docker stats
 top
 ```
 
-2. **Reduce concurrent tasks**:
+2. **同時実行タスク数を減らす**:
 ```yaml
 # docker-compose.prod.yml
 services:
@@ -491,77 +491,77 @@ services:
     command: celery -A app.celery_app worker --loglevel=info --concurrency=2
 ```
 
-### Issue: Disk Space Running Out
+### 問題: ディスク容量不足
 
-**Symptoms**:
-- "No space left on device" errors
-- Slow performance
+**症状**:
+- "No space left on device" エラー
+- パフォーマンスの低下
 
-**Solutions**:
+**解決策**:
 
-1. **Check disk usage**:
+1. **ディスク使用状況の確認**:
 ```bash
 df -h
 du -sh /data/*
 ```
 
-2. **Run cleanup service manually**:
+2. **クリーンアップサービスを手動で実行**:
 ```bash
 docker-compose -f docker-compose.prod.yml exec cleanup python -m app.scripts.cleanup_files
 ```
 
-3. **Reduce file retention period** in `.env`:
+3. **ファイル保持期間を短縮** (`.env` ファイル):
 ```bash
-FILE_RETENTION_HOURS=12  # Reduce from 24
+FILE_RETENTION_HOURS=12  # 24から削減
 ```
 
-4. **Clean old Docker images and volumes**:
+4. **古いDockerイメージとボリュームをクリーンアップ**:
 ```bash
 docker system prune -a --volumes
 ```
 
-## Frontend Issues
+## フロントエンドの問題
 
-### Issue: Frontend Not Loading
+### 問題: フロントエンドが読み込まれない
 
-**Symptoms**:
-- Blank page
-- "Cannot GET /" error
+**症状**:
+- 空白ページ
+- "Cannot GET /" エラー
 
-**Solutions**:
+**解決策**:
 
-1. **Check Nginx is serving frontend**:
+1. **Nginxがフロントエンドを提供しているか確認**:
 ```bash
 docker-compose -f docker-compose.prod.yml exec nginx ls -la /usr/share/nginx/html/
 ```
 
-2. **Verify frontend build exists**:
+2. **フロントエンドビルドが存在するか確認**:
 ```bash
 ls -la frontend/dist/
 ```
 
-3. **Rebuild frontend**:
+3. **フロントエンドの再ビルド**:
 ```bash
 cd frontend
 npm install
 npm run build
 cd ..
 
-# Restart nginx
+# nginxを再起動
 docker-compose -f docker-compose.prod.yml restart nginx
 ```
 
-4. **Check browser console** for JavaScript errors
+4. **ブラウザコンソール**でJavaScriptエラーを確認
 
-### Issue: API Requests Failing (CORS)
+### 問題: APIリクエストが失敗する（CORS）
 
-**Symptoms**:
-- "CORS error" in browser console
-- API requests blocked
+**症状**:
+- ブラウザコンソールに "CORS error"
+- APIリクエストがブロックされる
 
-**Solutions**:
+**解決策**:
 
-1. **Check CORS configuration** in `backend/app/main.py`:
+1. **CORS設定の確認** (`backend/app/main.py`):
 ```python
 app.add_middleware(
     CORSMiddleware,
@@ -572,43 +572,43 @@ app.add_middleware(
 )
 ```
 
-2. **Verify request is going to correct URL**:
-- Frontend should use relative paths (`/api/v1/...`)
+2. **リクエストが正しいURLに送信されているか確認**:
+- フロントエンドは相対パス（`/api/v1/...`）を使用する必要がある
 
-## Getting Help
+## ヘルプの取得
 
-### Gather Information
+### 情報収集
 
-Before reporting an issue, collect:
+問題を報告する前に、以下を収集してください:
 
-1. **System information**:
+1. **システム情報**:
 ```bash
 uname -a
 docker --version
 nvidia-smi
 ```
 
-2. **Service status**:
+2. **サービスステータス**:
 ```bash
 docker-compose -f docker-compose.prod.yml ps
 ```
 
-3. **Recent logs**:
+3. **最近のログ**:
 ```bash
 docker-compose -f docker-compose.prod.yml logs --tail=200 > logs.txt
 ```
 
-### Report Issue
+### 問題の報告
 
 - **GitHub Issues**: https://github.com/your-org/whisper-app/issues
-- **Include**: Steps to reproduce, expected vs actual behavior, logs, system info
+- **含めるべき情報**: 再現手順、期待される動作と実際の動作、ログ、システム情報
 
-## Additional Resources
+## その他のリソース
 
-- [Setup Guide](./setup-guide.md)
-- [Deployment Guide](./deployment-guide.md)
-- [API Specification](./api-specification.md)
-- [Architecture Documentation](./architecture.md)
+- [セットアップガイド](./setup-guide.md)
+- [デプロイメントガイド](./deployment-guide.md)
+- [API仕様](./api-specification.md)
+- [アーキテクチャドキュメント](./architecture.md)
 
-**Last Updated**: 2025-10-13
-**Phase**: Phase 9 - Deployment Preparation
+**最終更新日**: 2025-10-13
+**フェーズ**: フェーズ9 - デプロイメント準備

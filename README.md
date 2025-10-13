@@ -281,7 +281,7 @@ docker-compose exec frontend npm run test:e2e
 |-------|----------|--------|
 | Phase 1: 環境構築・基盤実装 | ✅ 完了 | 2025-10-13 |
 | Phase 2: 認証・ユーザー管理 | ✅ 完了 | 2025-10-13 |
-| Phase 3: ファイルアップロード機能 | 🔄 計画中 | - |
+| Phase 3: ファイルアップロード機能 | ✅ 完了 | 2025-10-13 |
 | Phase 4: Whisper文字起こし機能 | 📋 未着手 | - |
 
 詳細は[開発計画書](./docs/development-plan.md)を参照してください。

@@ -429,6 +429,137 @@ docker-compose logs backend 2>&1 | grep -i error
 
 ---
 
+## Phase 3: ファイルアップロード機能の問題
+
+### 問題: Pydantic `model_name` フィールド警告
+
+**症状:**
+バックエンド起動時に以下の警告が表示される：
+```
+UserWarning: Field "model_name" has conflict with protected namespace "model_".
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+```
+
+**原因:**
+Pydanticでは`model_`で始まるフィールド名は保護された名前空間として扱われる。`model_name`はこの規則に抵触するため警告が表示される。
+
+**対処法:**
+
+`backend/app/schemas/task.py`でモデル設定を追加：
+
+```python
+class TaskBase(BaseModel):
+    model_config = {"protected_namespaces": ()}  # 保護された名前空間を無効化
+
+    model_name: str = Field(..., description="Whisper model name")
+    language: str = Field(default="ja", description="Language code")
+    # ...
+```
+
+---
+
+### 問題: フロントエンドUIコンポーネント不足エラー
+
+**症状:**
+Vite開発サーバーで以下のエラーが発生：
+```
+Failed to resolve import "@/components/ui/label" from "src/pages/Upload.tsx"
+Failed to resolve import "@/components/ui/progress"
+Failed to resolve import "@/components/ui/badge"
+```
+
+**原因:**
+shadcn/uiのコンポーネントがインストールされていない。
+
+**対処法:**
+
+必要なUIコンポーネントを手動で作成：
+
+1. **必要なRadix UIパッケージをインストール**
+```bash
+docker-compose exec frontend-dev npm install @radix-ui/react-label @radix-ui/react-progress @radix-ui/react-select class-variance-authority
+```
+
+2. **コンポーネントファイルを作成**
+- `frontend/src/components/ui/label.tsx`
+- `frontend/src/components/ui/input.tsx`
+- `frontend/src/components/ui/progress.tsx`
+- `frontend/src/components/ui/badge.tsx`
+- `frontend/src/components/ui/alert.tsx`
+- `frontend/src/components/ui/select.tsx`
+
+3. **Viteキャッシュをクリア**
+```bash
+docker-compose exec frontend-dev rm -rf /app/node_modules/.vite
+docker-compose restart frontend-dev
+```
+
+**注意:**
+- shadcn CLI（`npx shadcn-ui@latest add`）はNode 20+が必要だが、コンテナはNode 18を使用
+- 本番環境でもNode 18で動作するため、手動でコンポーネントを作成する方が安全
+
+---
+
+### 問題: `api` named export エラー
+
+**症状:**
+フロントエンドのビルド時に以下のエラーが発生：
+```
+No matching export in "src/services/api.ts" for import "api"
+```
+
+**原因:**
+`api.ts`で`api`という名前付きエクスポートが定義されていないが、`Upload.tsx`や`TaskDetail.tsx`で`import { api } from '@/services/api'`としてインポートしている。
+
+**対処法:**
+
+`frontend/src/services/api.ts`にnamed exportを追加：
+
+```typescript
+// Named export for convenience
+export const api = apiClient
+
+export default apiClient
+```
+
+これにより、以下の両方のインポート方法が使用可能：
+```typescript
+import { api } from '@/services/api'  // named import
+import apiClient from '@/services/api'  // default import
+```
+
+---
+
+### 問題: React状態更新のタイミングエラー
+
+**症状:**
+`Upload.tsx`でreact-dropzoneを使用してフォームを送信すると、空の値（`""`）がAPIに送信される。
+
+**原因:**
+Reactの`input`要素に直接`.value`を設定しても、Reactの状態管理システムが認識しない。
+
+**対処法:**
+
+ブラウザテスト時にReactの状態を正しく更新：
+
+```javascript
+// 正しい方法：Reactの内部セッターを使用
+const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+  window.HTMLInputElement.prototype,
+  'value'
+).set;
+
+nativeInputValueSetter.call(usernameInput, 'user1');
+usernameInput.dispatchEvent(new Event('input', { bubbles: true }));
+usernameInput.dispatchEvent(new Event('change', { bubbles: true }));
+```
+
+**通常のアプリケーション使用では発生しない問題**
+- この問題は自動テストやブラウザ自動化で発生
+- ユーザーが手動で入力する場合は問題なし
+
+---
+
 ## 本番環境との違い
 
 | 項目 | 開発環境 | 本番環境 |
@@ -440,4 +571,9 @@ docker-compose logs backend 2>&1 | grep -i error
 | CORS | 緩い設定 | 厳密な設定 |
 | ポート | 8001, 5174 | 80, 443 (Nginx経由) |
 
-開発環境ではPhase 1-2（環境構築・認証）の実装と動作確認を行い、GPU必須のPhase 4（Whisper文字起こし）以降は本番環境で実装・テストを行う想定です。
+開発環境ではPhase 1-3（環境構築・認証・ファイルアップロード）の実装と動作確認を行い、GPU必須のPhase 4（Whisper文字起こし）以降は本番環境で実装・テストを行う想定です。
+
+---
+
+**最終更新日**: 2025-10-13
+**対応Phase**: Phase 1-3完了時点

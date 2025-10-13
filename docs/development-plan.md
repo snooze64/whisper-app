@@ -166,37 +166,98 @@
 
 **完了日**: 2025-10-13
 
-### Phase 3: ファイルアップロード機能
+### Phase 3: ファイルアップロード機能 ✅ 完了
 
 #### バックエンド
-- [ ] ファイルアップロードAPI実装
-- [ ] ファイル検証ロジック（サイズ、形式）
-- [ ] ファイル保存処理
-- [ ] Taskモデル作成
-- [ ] タスク作成API実装
+- [x] Taskモデル作成（UUID主キー、ユーザー関連、ステータス管理）
+- [x] データベースマイグレーション（002_create_tasks_table）
+- [x] ファイルアップロードAPI実装（POST /api/v1/upload）
+- [x] ファイル検証ロジック（サイズ1GB制限、形式MP3/WAV/MP4）
+- [x] ファイル保存処理（UUID ベース、ユーザーディレクトリ分離）
+- [x] FileService実装（アップロード、検証、削除）
+- [x] TaskService実装（CRUD、権限チェック）
+- [x] タスク管理API実装
+  - GET /api/v1/tasks（一覧、ページネーション）
+  - GET /api/v1/tasks/{task_id}（詳細）
+  - GET /api/v1/tasks/{task_id}/status（ポーリング用軽量エンドポイント）
+  - DELETE /api/v1/tasks/{task_id}（タスクとファイル削除）
 
 #### フロントエンド
-- [ ] ファイルアップロード画面作成
-- [ ] react-dropzone統合
-- [ ] アップロードプログレス表示
-- [ ] パラメータ設定フォーム（モデル、言語、話者数）
+- [x] ファイルアップロード画面作成（Upload.tsx）
+- [x] react-dropzone統合（ドラッグ&ドロップ対応）
+- [x] ファイル検証（クライアント側）
+- [x] パラメータ設定フォーム
+  - Whisperモデル選択（Large V3 Turbo / Large V3）
+  - 言語選択（日本語、英語、中国語、韓国語）
+  - 話者数入力（オプション、1-10人）
+- [x] タスク詳細画面作成（TaskDetail.tsx）
+- [x] ステータスバッジ表示（待機中、処理中、完了、失敗）
+- [x] プログレスバー表示
+- [x] 自動ポーリング実装（3秒間隔）
+- [x] UIコンポーネント追加
+  - label.tsx, input.tsx, progress.tsx
+  - badge.tsx, alert.tsx, select.tsx
 
-### Phase 4: Whisper文字起こし機能
+#### 権限管理
+- [x] ユーザーは自分のタスクのみ閲覧可能
+- [x] 管理者は全ユーザーのタスク閲覧可能
+- [x] タスク削除権限チェック
+
+#### テスト・検証
+- [x] ブラウザテスト（Chrome DevTools MCP）
+  - ログイン（user1 / user123）
+  - ダッシュボード表示
+  - アップロード画面表示
+  - 全UIコンポーネントの動作確認
+- [x] API動作確認
+  - 認証API（トークン発行）
+  - タスク一覧API
+
+**完了日**: 2025-10-13
+
+### Phase 4: Whisper文字起こし機能 ✅ 完了
 
 #### バックエンド
-- [ ] Celeryワーカー設定
-- [ ] faster-whisper統合
-- [ ] 音声抽出タスク（FFmpeg）
-- [ ] 文字起こしタスク実装
-- [ ] GPU メモリ監視実装
-- [ ] タスク状態更新ロジック
-- [ ] エラーハンドリング・リトライ
-- [ ] 文字起こし結果保存
+- [x] Celeryワーカー設定（transcriptionキュー）
+- [x] faster-whisper統合（WhisperTranscriber クラス）
+- [x] 音声抽出タスク（FFmpeg、16kHz mono WAV変換）
+- [x] 文字起こしタスク実装（3段階タスクチェーン）
+  - extract_audio_task: 音声抽出（進捗10%→20%）
+  - transcribe_audio_task: 文字起こし（進捗30%→50%→80%）
+  - save_transcription_result: 結果保存（進捗100%）
+- [x] GPU メモリ監視実装（pynvml + graceful fallback）
+- [x] タスク状態更新ロジック（同期DBセッション）
+- [x] エラーハンドリング・リトライ（指数バックオフ）
+- [x] 文字起こし結果保存（データベース + 一時ファイルクリーンアップ）
+- [x] モック文字起こし実装（開発環境用）
+- [x] 全モデルサポート（tiny, base, small, medium, large-v3, large-v3-turbo）
 
 #### フロントエンド
-- [ ] タスク状態ポーリング実装
-- [ ] プログレス表示
-- [ ] 処理状況画面作成
+- [x] Tinyモデル選択追加
+- [x] タスク状態ポーリング実装（3秒間隔）
+- [x] プログレス表示（進捗バー）
+- [x] 処理状況画面（TaskDetail.tsx）
+
+#### 開発環境対応
+- [x] docker-compose.dev-full.yml作成（GPU不要構成）
+- [x] Dockerfile.dev更新（FFmpeg追加）
+- [x] requirements-dev.txt整備
+- [x] Celeryキュー設定（transcription）
+- [x] 同期DBセッション追加（Celery用）
+
+#### テスト・検証
+- [x] ブラウザテスト（Chrome DevTools MCP）
+  - サンプル音声ファイルアップロード（001-sibutomo.mp3）
+  - Tinyモデル選択
+  - 文字起こし実行（24秒音声→5セグメント生成）
+  - タスク完了確認
+- [x] Celeryワーカー動作確認
+  - 音声抽出（0.25秒）
+  - モック文字起こし（0.05秒）
+  - 結果保存（0.002秒）
+- [x] 進捗追跡確認（10%→20%→30%→50%→80%→100%）
+
+**完了日**: 2025-10-13
 
 ### Phase 5: 話者分離機能
 

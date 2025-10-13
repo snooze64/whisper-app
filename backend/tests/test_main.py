@@ -2,16 +2,12 @@
 Test main FastAPI application
 """
 import pytest
-from fastapi.testclient import TestClient
-
-from app.main import app
-
-client = TestClient(app)
 
 
-def test_root_endpoint():
+@pytest.mark.asyncio
+async def test_root_endpoint(test_client):
     """Test root endpoint"""
-    response = client.get("/")
+    response = await test_client.get("/")
     assert response.status_code == 200
     data = response.json()
     assert "message" in data
@@ -19,16 +15,18 @@ def test_root_endpoint():
     assert data["message"] == "Whisper Transcription API"
 
 
-def test_health_check():
+@pytest.mark.asyncio
+async def test_health_check(test_client):
     """Test health check endpoint"""
-    response = client.get("/health")
+    response = await test_client.get("/health")
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "healthy"
     assert data["service"] == "whisper-api"
 
 
-def test_docs_available():
+@pytest.mark.asyncio
+async def test_docs_available(test_client):
     """Test that API docs are available"""
-    response = client.get("/api/docs")
+    response = await test_client.get("/api/docs")
     assert response.status_code == 200

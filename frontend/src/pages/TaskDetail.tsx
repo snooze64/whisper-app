@@ -6,7 +6,9 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowLeft, FileAudio, Clock, CheckCircle, XCircle, Loader2, AlertCircle } from 'lucide-react';
-import { api } from '@/services/api';
+import { api, transcriptionAPI } from '@/services/api';
+import { Transcription } from '@/types/transcription';
+import TranscriptionViewer from '@/components/TranscriptionViewer';
 
 interface Task {
   id: string;
@@ -35,7 +37,9 @@ export default function TaskDetail() {
   const { taskId } = useParams<{ taskId: string }>();
   const navigate = useNavigate();
   const [task, setTask] = useState<Task | null>(null);
+  const [transcription, setTranscription] = useState<Transcription | null>(null);
   const [loading, setLoading] = useState(true);
+  const [transcriptionLoading, setTranscriptionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -49,6 +53,13 @@ export default function TaskDetail() {
 
     return () => clearInterval(interval);
   }, [taskId, task?.status]);
+
+  // Fetch transcription when task is completed
+  useEffect(() => {
+    if (task?.status === 'completed' && !transcription && !transcriptionLoading) {
+      fetchTranscription();
+    }
+  }, [task?.status]);
 
   const fetchTask = async () => {
     try {
@@ -70,6 +81,28 @@ export default function TaskDetail() {
     } catch (err) {
       console.error('Failed to fetch task status:', err);
     }
+  };
+
+  const fetchTranscription = async () => {
+    if (!taskId) return;
+
+    try {
+      setTranscriptionLoading(true);
+      const data = await transcriptionAPI.getTranscription(taskId);
+      setTranscription(data);
+    } catch (err: any) {
+      console.error('Failed to fetch transcription:', err);
+      // Don't show error if transcription doesn't exist yet
+      if (err.response?.status !== 404) {
+        setError(err.response?.data?.detail || '文字起こし結果の取得に失敗しました');
+      }
+    } finally {
+      setTranscriptionLoading(false);
+    }
+  };
+
+  const handleTranscriptionUpdate = (updated: Transcription) => {
+    setTranscription(updated);
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -114,12 +147,10 @@ export default function TaskDetail() {
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
-      <Button variant="ghost" className="mb-4" asChild>
-        <Link to="/">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          ダッシュボードに戻る
-        </Link>
-      </Button>
+      <Link to="/" className="inline-flex items-center mb-4 text-sm hover:underline">
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        ダッシュボードに戻る
+      </Link>
 
       <h1 className="text-3xl font-bold mb-8">タスク詳細</h1>
 
@@ -193,20 +224,48 @@ export default function TaskDetail() {
       </Card>
 
       {task.status === 'completed' && (
-        <Card>
-          <CardHeader>
-            <CardTitle>文字起こし結果</CardTitle>
-            <CardDescription>
-              文字起こしが完了しました
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-500 mb-4">
-              Phase 4で文字起こし機能を実装後、結果が表示されます
-            </p>
-            <Button disabled>結果を表示（準備中）</Button>
-          </CardContent>
-        </Card>
+        <div>
+          {transcriptionLoading ? (
+            <Card>
+              <CardContent className="py-8">
+                <div className="flex items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
+                  <span>文字起こし結果を読み込み中...</span>
+                </div>
+              </CardContent>
+            </Card>
+          ) : transcription ? (
+            <TranscriptionViewer
+              transcription={transcription}
+              taskId={taskId!}
+              onUpdate={handleTranscriptionUpdate}
+            />
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>文字起こし結果</CardTitle>
+                <CardDescription>
+                  文字起こしが完了しました
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    文字起こし結果が見つかりません。
+                  </AlertDescription>
+                </Alert>
+                <Button
+                  className="mt-4"
+                  onClick={fetchTranscription}
+                  variant="outline"
+                >
+                  再読み込み
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
     </div>
   );

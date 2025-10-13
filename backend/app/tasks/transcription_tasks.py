@@ -17,11 +17,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.celery_app import celery_app
 from app.db.session import get_db_context
 from app.models.task import Task as TaskModel
+from app.models.transcription import Transcription
+from app.models.processing_history import ProcessingHistory
 from app.tasks.audio_extraction import extract_audio, get_audio_duration, cleanup_temp_audio
 from app.tasks.gpu_monitor import get_gpu_monitor, get_model_memory_requirement
 from app.tasks.diarization import get_diarizer
+from app.utils.subtitle import save_subtitle_file
+from decimal import Decimal
 
 logger = logging.getLogger(__name__)
+
+# Backend selection via environment variable
+# WHISPER_BACKEND: "faster-whisper" (default) or "transformers"
+WHISPER_BACKEND = os.getenv("WHISPER_BACKEND", "faster-whisper")
 
 # Try to import faster-whisper
 try:
@@ -31,6 +39,15 @@ try:
 except ImportError:
     FASTER_WHISPER_AVAILABLE = False
     logger.warning("faster-whisper not available - using mock mode")
+
+# Try to import transformers-based implementation
+try:
+    from app.tasks.whisper_transformers import WhisperTranscriberTransformers
+    TRANSFORMERS_AVAILABLE = True
+    logger.info("transformers backend available")
+except ImportError:
+    TRANSFORMERS_AVAILABLE = False
+    logger.warning("transformers backend not available")
 
 
 class WhisperTranscriber:
@@ -188,6 +205,59 @@ class WhisperTranscriber:
         return segments
 
 
+def get_transcriber(model_name: str, device: str, compute_type: str):
+    """
+    Factory function to create appropriate Whisper transcriber based on backend selection
+
+    Args:
+        model_name: Whisper model name
+        device: Device to use ("cuda" or "cpu")
+        compute_type: Computation type for faster-whisper or torch dtype for transformers
+
+    Returns:
+        Transcriber instance (WhisperTranscriber or WhisperTranscriberTransformers)
+    """
+    backend = WHISPER_BACKEND.lower()
+
+    logger.info(f"Creating transcriber: backend={backend}, model={model_name}, device={device}, compute_type={compute_type}")
+
+    if backend == "transformers":
+        if not TRANSFORMERS_AVAILABLE:
+            logger.error("transformers backend requested but not available, falling back to faster-whisper")
+            backend = "faster-whisper"
+        else:
+            # Use transformers backend
+            logger.info("Using transformers backend (HuggingFace Whisper)")
+
+            # Map compute_type to torch_dtype
+            # faster-whisper compute_type: "float16", "int8_float16", "int8"
+            # transformers torch_dtype: "float16", "float32", "int8"
+            torch_dtype_map = {
+                "float16": "float16",
+                "int8_float16": "float16",  # Use float16 as closest match
+                "int8": "int8",
+                "float32": "float32"
+            }
+            torch_dtype = torch_dtype_map.get(compute_type, "float16")
+
+            return WhisperTranscriberTransformers(
+                model_name=model_name,
+                device=device,
+                torch_dtype=torch_dtype
+            )
+
+    # Use faster-whisper backend (default)
+    if not FASTER_WHISPER_AVAILABLE:
+        logger.warning("faster-whisper not available, transcriber will use mock mode")
+
+    logger.info("Using faster-whisper backend (CTranslate2)")
+    return WhisperTranscriber(
+        model_name=model_name,
+        device=device,
+        compute_type=compute_type
+    )
+
+
 # Celery tasks
 
 @celery_app.task(bind=True, max_retries=3)
@@ -307,10 +377,21 @@ def transcribe_audio_task(
                 db.commit()
 
         # Initialize transcriber
-        device = "cuda" if FASTER_WHISPER_AVAILABLE else "cpu"
+        # Check if GPU is actually available via gpu_monitor
+        gpu_monitor = get_gpu_monitor()
+
+        # Determine if we can use CUDA based on backend availability
+        backend_available = (
+            (WHISPER_BACKEND == "transformers" and TRANSFORMERS_AVAILABLE) or
+            (WHISPER_BACKEND == "faster-whisper" and FASTER_WHISPER_AVAILABLE)
+        )
+        device = "cuda" if (backend_available and gpu_monitor.initialized) else "cpu"
         compute_type = "float16" if device == "cuda" else "int8"
 
-        transcriber = WhisperTranscriber(
+        logger.info(f"Device selection: backend={WHISPER_BACKEND}, device={device}, compute_type={compute_type}, gpu_available={gpu_monitor.initialized}")
+
+        # Use factory function to get appropriate transcriber backend
+        transcriber = get_transcriber(
             model_name=model_name,
             device=device,
             compute_type=compute_type
@@ -497,14 +578,81 @@ def save_transcription_result(
             if not task:
                 raise ValueError(f"Task not found: {task_id}")
 
+            # Create full transcription text by concatenating all segments
+            transcription_text = "\n".join([seg.get("text", "").strip() for seg in segments if seg.get("text")])
+
+            # Calculate word count (rough estimate by splitting on whitespace)
+            word_count = len(transcription_text.split())
+
+            # Generate subtitle files (SRT format by default)
+            subtitle_path = None
+            try:
+                # Create subtitles directory if it doesn't exist
+                subtitle_dir = Path("/data/subtitles")
+                subtitle_dir.mkdir(parents=True, exist_ok=True)
+
+                # Generate SRT subtitle file
+                base_path = subtitle_dir / str(task_id)
+                subtitle_path = save_subtitle_file(segments, str(base_path), format="srt")
+                logger.info(f"Generated subtitle file: {subtitle_path}")
+            except Exception as e:
+                logger.error(f"Failed to generate subtitle file: {e}")
+                # Continue even if subtitle generation fails
+                subtitle_path = None
+
+            # Create Transcription record
+            transcription = Transcription(
+                task_id=task.id,
+                transcription_text=transcription_text,
+                segments=segments,
+                subtitle_path=subtitle_path,
+                word_count=word_count
+            )
+            db.add(transcription)
+
             # Update task
             task.status = "completed"
             task.progress = 100
             task.completed_at = datetime.utcnow()
 
-            # TODO: Save segments to transcriptions table (Phase 6)
-            # For now, just store segment count in progress field as verification
-            logger.info(f"Segments to save: {len(segments)}")
+            logger.info(f"Saved transcription: {len(segments)} segments, {word_count} words")
+
+            # Create processing history record
+            try:
+                # Calculate processing time in seconds
+                processing_time = int((task.completed_at - task.created_at).total_seconds())
+
+                # Try to get GPU memory usage
+                gpu_memory_used_mb = None
+                try:
+                    gpu_monitor = get_gpu_monitor()
+                    if gpu_monitor.initialized:
+                        gpu_info = gpu_monitor.get_gpu_info()
+                        if gpu_info and 'memory_used' in gpu_info:
+                            gpu_memory_used_mb = gpu_info['memory_used']
+                except Exception:
+                    pass  # GPU info not available
+
+                # Convert file size to MB
+                file_size_mb = Decimal(str(task.file_size / (1024 * 1024)))
+
+                # Create history record
+                history = ProcessingHistory(
+                    task_id=task.id,
+                    user_id=task.user_id,
+                    processing_time_seconds=processing_time,
+                    gpu_memory_used_mb=gpu_memory_used_mb,
+                    model_name=task.model_name,
+                    file_format=task.file_format,
+                    file_size_mb=file_size_mb,
+                    success=True,
+                    error_type=None
+                )
+                db.add(history)
+                logger.info(f"Created processing history record for task {task_id}")
+            except Exception as e:
+                logger.error(f"Failed to create processing history record: {e}")
+                # Don't fail the task if history recording fails
 
             db.commit()
 
@@ -522,7 +670,7 @@ def save_transcription_result(
     except Exception as e:
         logger.error(f"Failed to save transcription result: {e}")
 
-        # Update task status to failed
+        # Update task status to failed and create failure history record
         try:
             with get_db_context() as db:
                 result = db.execute(
@@ -532,6 +680,29 @@ def save_transcription_result(
                 if task:
                     task.status = "failed"
                     task.error_message = f"Failed to save result: {str(e)}"
+                    task.completed_at = datetime.utcnow()
+
+                    # Create failure history record
+                    try:
+                        processing_time = int((task.completed_at - task.created_at).total_seconds())
+                        file_size_mb = Decimal(str(task.file_size / (1024 * 1024)))
+
+                        history = ProcessingHistory(
+                            task_id=task.id,
+                            user_id=task.user_id,
+                            processing_time_seconds=processing_time,
+                            gpu_memory_used_mb=None,
+                            model_name=task.model_name,
+                            file_format=task.file_format,
+                            file_size_mb=file_size_mb,
+                            success=False,
+                            error_type="save_result_error"
+                        )
+                        db.add(history)
+                        logger.info(f"Created failure history record for task {task_id}")
+                    except Exception as hist_error:
+                        logger.error(f"Failed to create failure history record: {hist_error}")
+
                     db.commit()
         except:
             pass

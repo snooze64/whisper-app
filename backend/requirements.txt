@@ -4,9 +4,9 @@ uvicorn[standard]==0.24.0
 python-multipart==0.0.6
 
 # AI/ML
-faster-whisper==1.0.0
-torch==2.1.0+cu118
-torchaudio==2.1.0+cu118
+faster-whisper==1.2.0
+torch==2.1.0+cu121
+torchaudio==2.1.0+cu121
 resemblyzer==0.1.1.dev0
 
 # Media Processing

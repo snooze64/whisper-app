@@ -1,579 +1,523 @@
-# トラブルシューティング
+# Troubleshooting Guide
 
-このドキュメントでは、開発中に発生する可能性のある問題とその解決方法をまとめています。
+Common issues and solutions for the Whisper App production deployment.
 
-## 目次
-1. [ポート競合エラー](#ポート競合エラー)
-2. [GPU/CUDA関連エラー](#gpucuda関連エラー)
-3. [環境変数・設定エラー](#環境変数設定エラー)
-4. [依存パッケージエラー](#依存パッケージエラー)
+## Table of Contents
 
----
+1. [Quick Diagnostics](#quick-diagnostics)
+2. [Service Issues](#service-issues)
+3. [Authentication Issues](#authentication-issues)
+4. [File Upload Issues](#file-upload-issues)
+5. [Transcription Issues](#transcription-issues)
+6. [GPU Issues](#gpu-issues)
+7. [Database Issues](#database-issues)
+8. [Network Issues](#network-issues)
+9. [Performance Issues](#performance-issues)
+10. [Frontend Issues](#frontend-issues)
 
-## ポート競合エラー
+## Quick Diagnostics
 
-### 問題: `Bind for 0.0.0.0:XXXX failed: port is already allocated`
+### Check All Services
 
-**症状:**
-Docker Composeでサービス起動時に以下のようなエラーが発生する：
-```
-Error response from daemon: failed to set up container networking:
-driver failed programming external connectivity on endpoint whisper-redis:
-Bind for 0.0.0.0:6379 failed: port is already allocated
-```
-
-**原因:**
-ホストマシンで既に同じポートを使用している他のサービスが稼働している。
-
-**対処法:**
-
-1. **既存サービスの確認**
 ```bash
-# ポート使用状況の確認
-lsof -ti:6379  # Redis
-lsof -ti:5432  # PostgreSQL
-lsof -ti:8000  # Backend
-lsof -ti:5173  # Frontend
+# Check service status
+docker-compose -f docker-compose.prod.yml ps
+
+# Check logs for errors
+docker-compose -f docker-compose.prod.yml logs --tail=100 | grep -i error
+
+# Check resource usage
+docker stats
+
+# Check disk space
+df -h
 ```
 
-2. **docker-compose.ymlのポートマッピング変更**
+### Test API Health
 
-競合しているポートを変更します：
+```bash
+# Test health endpoint
+curl https://yourdomain.com/health
 
+# Expected: {"status": "healthy"}
+```
+
+## Service Issues
+
+### Issue: Services Won't Start
+
+**Symptoms**:
+- `docker-compose up` fails
+- Containers exit immediately
+- "Port already in use" errors
+
+**Solutions**:
+
+1. **Check for port conflicts**:
+```bash
+# Check if ports are in use
+lsof -i :80  # HTTP
+lsof -i :443 # HTTPS
+lsof -i :5432 # PostgreSQL
+lsof -i :6379 # Redis
+
+# Kill conflicting processes if needed
+kill -9 <PID>
+```
+
+2. **Check Docker daemon**:
+```bash
+sudo systemctl status docker
+sudo systemctl restart docker
+```
+
+3. **Rebuild containers**:
+```bash
+docker-compose -f docker-compose.prod.yml down
+docker-compose -f docker-compose.prod.yml up -d --build
+```
+
+### Issue: Container Keeps Restarting
+
+**Symptoms**:
+- Container status shows "Restarting"
+- Service is unstable
+
+**Solutions**:
+
+1. **Check container logs**:
+```bash
+docker-compose -f docker-compose.prod.yml logs --tail=200 <service_name>
+```
+
+2. **Check environment variables**:
+```bash
+# Verify .env file exists and has correct values
+cat .env | grep -v PASSWORD | grep -v SECRET
+```
+
+3. **Increase memory limits** in `docker-compose.prod.yml`:
 ```yaml
 services:
-  postgres:
-    ports:
-      - "5434:5432"  # ホスト側のポートを変更
-
-  redis:
-    ports:
-      - "6380:6379"  # ホスト側のポートを変更
-
   backend:
-    ports:
-      - "8001:8000"  # ホスト側のポートを変更
-
-  frontend-dev:
-    ports:
-      - "5174:5173"  # ホスト側のポートを変更
+    deploy:
+      resources:
+        limits:
+          memory: 8G  # Increase from 4G
 ```
 
-**本プロジェクトでの実装:**
-- PostgreSQL: `5434:5432`
-- Redis: `6380:6379`
-- Backend: `8001:8000`
-- Frontend: `5174:5173`
+## Authentication Issues
 
----
+### Issue: Cannot Login
 
-## GPU/CUDA関連エラー
+**Symptoms**:
+- "Invalid credentials" error
+- Login succeeds but immediately fails
 
-### 問題: `torch==2.1.0+cu118` インストール失敗
+**Solutions**:
 
-**症状:**
-バックエンドDockerイメージのビルド時に以下のエラーが発生：
-```
-ERROR: Could not find a version that satisfies the requirement torch==2.1.0+cu118
-ERROR: No matching distribution found for torch==2.1.0+cu118
-```
-
-**原因:**
-- MacBook AirなどGPUを搭載していない環境で、CUDA版のPyTorchをインストールしようとしている
-- ARM64アーキテクチャ（Apple Silicon）ではCUDA版のPyTorchが利用できない
-
-**対処法:**
-
-開発環境用に**GPU依存なし**の軽量版requirements.txtとDockerfileを作成：
-
-1. **`backend/requirements-dev.txt` を作成**
-
-```txt
-# Development requirements (without GPU dependencies)
-
-# Web Framework
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-python-multipart==0.0.6
-
-# Task Queue
-celery==5.3.4
-redis==5.0.1
-
-# Database
-sqlalchemy==2.0.23
-asyncpg==0.29.0
-alembic==1.12.1
-psycopg2-binary==2.9.9
-
-# Authentication
-ldap3==2.9.1
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-
-# Utilities
-pydantic==2.5.0
-pydantic-settings==2.1.0
-python-dotenv==1.0.0
-email-validator==2.1.0
-
-# Testing
-pytest==7.4.3
-pytest-asyncio==0.21.1
-httpx==0.25.2
-
-# Development
-ruff==0.1.6
-black==23.11.0
-mypy==1.7.1
+1. **Check LDAP connectivity**:
+```bash
+# Test LDAP connection from backend container
+docker-compose -f docker-compose.prod.yml exec backend ldapsearch \
+  -x \
+  -H ldap://your-ldap-server:389 \
+  -D "cn=admin,dc=example,dc=com" \
+  -w "password" \
+  -b "dc=example,dc=com"
 ```
 
-2. **`backend/Dockerfile.dev` を作成**
-
-```dockerfile
-# Development Dockerfile (without GPU support)
-FROM python:3.11-slim
-
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-
-# Copy requirements
-COPY requirements-dev.txt .
-
-# Install Python dependencies
-RUN pip install --upgrade pip && \
-    pip install -r requirements-dev.txt
-
-COPY . .
-
-RUN mkdir -p /data/uploads /data/results /data/temp
-
-EXPOSE 8000
-
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+2. **Verify LDAP configuration** in `.env`:
+```bash
+cat .env | grep LDAP
 ```
 
-3. **docker-compose.ymlで開発用Dockerfileを指定**
+3. **Check backend logs for LDAP errors**:
+```bash
+docker-compose -f docker-compose.prod.yml logs backend | grep -i ldap
+```
 
+### Issue: Admin Functions Not Working
+
+**Symptoms**:
+- "Forbidden" errors on admin endpoints
+- Admin user cannot access admin dashboard
+
+**Solutions**:
+
+1. **Verify user is admin**:
+```bash
+docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "SELECT id, username, is_admin FROM users WHERE username = 'admin_user';"
+```
+
+2. **Set user as admin**:
+```bash
+docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "UPDATE users SET is_admin = true WHERE username = 'admin_user';"
+```
+
+## File Upload Issues
+
+### Issue: File Upload Fails
+
+**Symptoms**:
+- "413 Payload Too Large" error
+- Upload progress sticks at certain percentage
+- "Unsupported file format" error
+
+**Solutions**:
+
+1. **Check file size limit**:
+```bash
+# Check MAX_FILE_SIZE in .env
+cat .env | grep MAX_FILE_SIZE
+
+# Default is 1GB (1073741824 bytes)
+```
+
+2. **Check Nginx upload limit**:
+```bash
+# Check client_max_body_size in nginx.prod.conf
+grep client_max_body_size nginx/nginx.prod.conf
+
+# Should be slightly larger than MAX_FILE_SIZE (e.g., 1100M)
+```
+
+3. **Verify file format is supported**:
+```
+Supported audio: MP3, WAV, M4A, FLAC, OGG
+Supported video: MP4, AVI, MOV, MKV
+```
+
+## Transcription Issues
+
+### Issue: Transcription Fails
+
+**Symptoms**:
+- Task status shows "failed"
+- No transcription result available
+
+**Solutions**:
+
+1. **Check Celery worker logs**:
+```bash
+docker-compose -f docker-compose.prod.yml logs celery-worker --tail=200
+```
+
+2. **Check task error message**:
+```bash
+docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "SELECT id, filename, status, error_message FROM tasks WHERE status = 'failed' ORDER BY created_at DESC LIMIT 5;"
+```
+
+3. **Common errors**:
+
+**Error: "Out of memory"**
+- Solution: Reduce concurrent tasks or increase GPU memory
+
+**Error: "FFmpeg failed"**
+- Solution: Check audio extraction
+```bash
+docker-compose -f docker-compose.prod.yml exec celery-worker ffmpeg -i /data/uploads/1/file.mp4 -vn -acodec pcm_s16le -ar 16000 /tmp/test.wav
+```
+
+## GPU Issues
+
+### Issue: GPU Not Detected
+
+**Symptoms**:
+- "GPU unavailable" error
+- Tasks use CPU instead of GPU (very slow)
+
+**Solutions**:
+
+1. **Check NVIDIA driver on host**:
+```bash
+nvidia-smi
+```
+
+2. **Install NVIDIA Container Toolkit**:
+```bash
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install -y nvidia-container-toolkit
+sudo systemctl restart docker
+```
+
+3. **Test GPU access in Docker**:
+```bash
+docker run --rm --gpus all nvidia/cuda:11.8.0-base-ubuntu22.04 nvidia-smi
+```
+
+### Issue: Out of GPU Memory
+
+**Symptoms**:
+- Tasks fail with "CUDA out of memory"
+- GPU memory full
+
+**Solutions**:
+
+1. **Check GPU memory usage**:
+```bash
+docker-compose -f docker-compose.prod.yml exec celery-worker nvidia-smi
+```
+
+2. **Reduce concurrent tasks**:
 ```yaml
-backend:
-  build:
-    context: ./backend
-    dockerfile: Dockerfile.dev  # 開発用Dockerfileを使用
+# docker-compose.prod.yml
+services:
+  celery-worker:
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=1
 ```
 
-**注意:**
-- 本番環境（GPU搭載サーバー）では元の`Dockerfile`と`requirements.txt`を使用
-- Whisper文字起こし機能はGPU環境でのみ動作（Phase 4以降で実装）
+3. **Use smaller Whisper model**:
+- `large-v3-turbo` uses ~10GB VRAM
+- `large-v3` uses ~12GB VRAM
 
----
+## Database Issues
 
-## 環境変数・設定エラー
+### Issue: Database Connection Errors
 
-### 問題: Pydantic Settings の CORS パースエラー
+**Symptoms**:
+- "Could not connect to database"
+- Connection timeout errors
 
-**症状:**
-Alembic実行時または起動時に以下のエラーが発生：
+**Solutions**:
+
+1. **Check PostgreSQL is running**:
+```bash
+docker-compose -f docker-compose.prod.yml ps postgres
+docker-compose -f docker-compose.prod.yml logs postgres
 ```
-pydantic_settings.sources.SettingsError: error parsing value for field
-"BACKEND_CORS_ORIGINS" from source "DotEnvSettingsSource"
-json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+2. **Check DATABASE_URL** in `.env`:
+```bash
+cat .env | grep DATABASE_URL
+# Should be: postgresql+asyncpg://user:pass@postgres:5432/whisper_prod
 ```
 
-**原因:**
-Pydantic Settingsが`List[str]`型のフィールドを`.env`ファイルから読み込む際、JSON形式として自動パースしようとして失敗している。
+3. **Test connection manually**:
+```bash
+docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "SELECT 1;"
+```
 
-**対処法:**
+### Issue: Database Running Slowly
 
-1. **バリデータの修正** (`backend/app/core/config.py`)
+**Symptoms**:
+- Slow API responses
+- Query timeouts
 
+**Solutions**:
+
+1. **Run VACUUM and ANALYZE**:
+```bash
+docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "VACUUM ANALYZE;"
+```
+
+2. **Check database size**:
+```bash
+docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "SELECT pg_size_pretty(pg_database_size('whisper_prod'));"
+```
+
+3. **Restart PostgreSQL**:
+```bash
+docker-compose -f docker-compose.prod.yml restart postgres
+```
+
+## Network Issues
+
+### Issue: Cannot Access Application
+
+**Symptoms**:
+- Cannot open https://yourdomain.com
+- Connection timeout
+
+**Solutions**:
+
+1. **Check Nginx is running**:
+```bash
+docker-compose -f docker-compose.prod.yml ps nginx
+docker-compose -f docker-compose.prod.yml logs nginx
+```
+
+2. **Check firewall rules**:
+```bash
+sudo ufw status
+# Should allow ports 80 and 443
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+```
+
+3. **Check DNS resolution**:
+```bash
+nslookup yourdomain.com
+dig yourdomain.com
+```
+
+### Issue: SSL Certificate Errors
+
+**Symptoms**:
+- "Certificate not trusted" error
+- SSL handshake failure
+
+**Solutions**:
+
+1. **Check certificate validity**:
+```bash
+echo | openssl s_client -servername yourdomain.com -connect yourdomain.com:443 2>/dev/null | openssl x509 -noout -dates
+```
+
+2. **Renew Let's Encrypt certificate**:
+```bash
+docker-compose -f docker-compose.prod.yml run --rm certbot renew
+docker-compose -f docker-compose.prod.yml exec nginx nginx -s reload
+```
+
+3. **Check certificate files exist**:
+```bash
+ls -la certbot/conf/live/yourdomain.com/
+```
+
+## Performance Issues
+
+### Issue: High CPU Usage
+
+**Symptoms**:
+- Server running hot
+- Slow response times
+
+**Solutions**:
+
+1. **Check CPU usage**:
+```bash
+docker stats
+top
+```
+
+2. **Reduce concurrent tasks**:
+```yaml
+# docker-compose.prod.yml
+services:
+  celery-worker:
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=2
+```
+
+### Issue: Disk Space Running Out
+
+**Symptoms**:
+- "No space left on device" errors
+- Slow performance
+
+**Solutions**:
+
+1. **Check disk usage**:
+```bash
+df -h
+du -sh /data/*
+```
+
+2. **Run cleanup service manually**:
+```bash
+docker-compose -f docker-compose.prod.yml exec cleanup python -m app.scripts.cleanup_files
+```
+
+3. **Reduce file retention period** in `.env`:
+```bash
+FILE_RETENTION_HOURS=12  # Reduce from 24
+```
+
+4. **Clean old Docker images and volumes**:
+```bash
+docker system prune -a --volumes
+```
+
+## Frontend Issues
+
+### Issue: Frontend Not Loading
+
+**Symptoms**:
+- Blank page
+- "Cannot GET /" error
+
+**Solutions**:
+
+1. **Check Nginx is serving frontend**:
+```bash
+docker-compose -f docker-compose.prod.yml exec nginx ls -la /usr/share/nginx/html/
+```
+
+2. **Verify frontend build exists**:
+```bash
+ls -la frontend/dist/
+```
+
+3. **Rebuild frontend**:
+```bash
+cd frontend
+npm install
+npm run build
+cd ..
+
+# Restart nginx
+docker-compose -f docker-compose.prod.yml restart nginx
+```
+
+4. **Check browser console** for JavaScript errors
+
+### Issue: API Requests Failing (CORS)
+
+**Symptoms**:
+- "CORS error" in browser console
+- API requests blocked
+
+**Solutions**:
+
+1. **Check CORS configuration** in `backend/app/main.py`:
 ```python
-@field_validator("BACKEND_CORS_ORIGINS", mode="before")
-@classmethod
-def assemble_cors_origins(cls, v: str | List[str] | None) -> List[str]:
-    if v is None or v == "":
-        return ["http://localhost:3000", "http://localhost:5173"]
-    if isinstance(v, str):
-        if v.startswith("["):
-            # JSON array string
-            import json
-            return json.loads(v)
-        # Comma-separated string
-        return [i.strip() for i in v.split(",")]
-    elif isinstance(v, list):
-        return v
-    raise ValueError(v)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://yourdomain.com"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 ```
 
-2. **環境変数で直接JSON配列を指定** (docker-compose.yml)
+2. **Verify request is going to correct URL**:
+- Frontend should use relative paths (`/api/v1/...`)
 
-```yaml
-backend:
-  environment:
-    - BACKEND_CORS_ORIGINS=["http://localhost:3000","http://localhost:5173","http://localhost:8001"]
-```
+## Getting Help
 
-3. **コンテナ内の.envファイルを削除**
+### Gather Information
 
-環境変数が優先されるように：
+Before reporting an issue, collect:
+
+1. **System information**:
 ```bash
-docker-compose exec backend rm -f .env
-docker-compose restart backend
+uname -a
+docker --version
+nvidia-smi
 ```
 
-**推奨設定:**
-- 開発環境: docker-compose.ymlの環境変数でJSON配列形式を使用
-- 本番環境: 環境変数ファイルでカンマ区切り文字列を使用
-
-**重要**: フロントエンド開発サーバーのポート（5174）を必ずCORS設定に含める：
-```yaml
-- BACKEND_CORS_ORIGINS=["http://localhost:3000","http://localhost:5173","http://localhost:5174","http://localhost:8001"]
-```
-
----
-
-## 依存パッケージエラー
-
-### 問題: `email-validator is not installed`
-
-**症状:**
-FastAPI起動時に以下のエラーが発生：
-```python
-ImportError: email-validator is not installed, run `pip install pydantic[email]`
-```
-
-**原因:**
-Pydantic の`EmailStr`型を使用する場合、`email-validator`パッケージが必要だが、requirements.txtに含まれていない。
-
-**対処法:**
-
-`backend/requirements-dev.txt`に追加：
-```txt
-# Utilities
-pydantic==2.5.0
-pydantic-settings==2.1.0
-python-dotenv==1.0.0
-email-validator==2.1.0  # 追加
-```
-
-再ビルド：
+2. **Service status**:
 ```bash
-docker-compose up -d --build backend
+docker-compose -f docker-compose.prod.yml ps
 ```
 
-**本番環境:**
-`backend/requirements.txt`にも同様に追加する必要があります。
-
----
-
-## データベースマイグレーション
-
-### マイグレーション実行手順
-
-1. **データベースサービスの起動確認**
+3. **Recent logs**:
 ```bash
-docker-compose ps postgres
-# STATUS が "healthy" であることを確認
+docker-compose -f docker-compose.prod.yml logs --tail=200 > logs.txt
 ```
 
-2. **マイグレーション実行**
-```bash
-docker-compose exec backend alembic upgrade head
-```
+### Report Issue
 
-3. **成功時の出力例**
-```
-INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
-INFO  [alembic.runtime.migration] Will assume transactional DDL.
-INFO  [alembic.runtime.migration] Running upgrade  -> 001, create users table
-```
+- **GitHub Issues**: https://github.com/your-org/whisper-app/issues
+- **Include**: Steps to reproduce, expected vs actual behavior, logs, system info
 
-### よくある問題
+## Additional Resources
 
-**問題: `FATAL: database "whisper" does not exist`**
+- [Setup Guide](./setup-guide.md)
+- [Deployment Guide](./deployment-guide.md)
+- [API Specification](./api-specification.md)
+- [Architecture Documentation](./architecture.md)
 
-**対処法:**
-```bash
-# PostgreSQLコンテナに入る
-docker-compose exec postgres psql -U user -d postgres
-
-# データベース作成
-CREATE DATABASE whisper;
-
-# 終了
-\q
-```
-
----
-
-## 開発環境セットアップのチェックリスト
-
-開発環境が正しくセットアップされているか確認：
-
-- [ ] PostgreSQL起動済み (ポート5434)
-- [ ] Redis起動済み (ポート6380)
-- [ ] Backend起動済み (ポート8001)
-- [ ] Frontend起動済み (ポート5174)
-- [ ] データベースマイグレーション完了
-
-**確認コマンド:**
-```bash
-# サービス状態確認
-docker-compose ps
-
-# ログ確認
-docker-compose logs backend --tail 20
-docker-compose logs frontend-dev --tail 20
-
-# API疎通確認
-curl http://localhost:8001/
-curl http://localhost:8001/health
-```
-
----
-
-## モック認証（開発環境）
-
-### 問題: LDAP サーバーがないためログインできない
-
-**症状:**
-開発環境でLDAPサーバーが利用できず、ログイン機能のテストができない。
-
-**対処法:**
-
-開発環境ではモック認証を使用してLDAPサーバーなしでログインが可能です。
-
-**1. モック認証の有効化**
-
-docker-compose.ymlで`USE_MOCK_AUTH=true`を設定（開発環境では既に設定済み）：
-
-```yaml
-backend:
-  environment:
-    - USE_MOCK_AUTH=true
-```
-
-**2. テストアカウント**
-
-以下のアカウントでログイン可能：
-
-| ユーザー名 | パスワード | 権限 |
-|----------|----------|------|
-| admin | admin123 | 管理者 |
-| user1 | user123 | 一般ユーザー |
-
-**3. ログイン確認**
-
-```bash
-# API経由でログインテスト
-curl -X POST http://localhost:8001/api/v1/auth/login \
-  -H 'Content-Type: application/json' \
-  -d '{"username":"admin","password":"admin123"}'
-```
-
-**4. ブラウザでログイン**
-
-1. http://localhost:5174 にアクセス
-2. ログインページで上記のアカウント情報を入力
-3. ログイン成功後、ダッシュボードが表示される
-
-**注意:**
-- モック認証は開発環境専用です
-- 本番環境では`USE_MOCK_AUTH=false`（デフォルト）でLDAP認証を使用
-- モックユーザーは`backend/app/services/auth_service.py`で定義されています
-
----
-
-## その他のTips
-
-### Docker環境のクリーンアップ
-
-問題が解決しない場合、クリーンな状態からやり直す：
-
-```bash
-# コンテナ停止・削除
-docker-compose down
-
-# ボリューム削除（データベースも削除される）
-docker-compose down -v
-
-# イメージも削除
-docker-compose down --rmi all
-
-# 再ビルド・起動
-docker-compose up -d --build
-```
-
-### ログの確認方法
-
-```bash
-# 全サービスのログ
-docker-compose logs -f
-
-# 特定サービスのログ
-docker-compose logs -f backend
-docker-compose logs -f frontend-dev
-
-# エラーのみ表示
-docker-compose logs backend 2>&1 | grep -i error
-```
-
----
-
-## Phase 3: ファイルアップロード機能の問題
-
-### 問題: Pydantic `model_name` フィールド警告
-
-**症状:**
-バックエンド起動時に以下の警告が表示される：
-```
-UserWarning: Field "model_name" has conflict with protected namespace "model_".
-You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
-```
-
-**原因:**
-Pydanticでは`model_`で始まるフィールド名は保護された名前空間として扱われる。`model_name`はこの規則に抵触するため警告が表示される。
-
-**対処法:**
-
-`backend/app/schemas/task.py`でモデル設定を追加：
-
-```python
-class TaskBase(BaseModel):
-    model_config = {"protected_namespaces": ()}  # 保護された名前空間を無効化
-
-    model_name: str = Field(..., description="Whisper model name")
-    language: str = Field(default="ja", description="Language code")
-    # ...
-```
-
----
-
-### 問題: フロントエンドUIコンポーネント不足エラー
-
-**症状:**
-Vite開発サーバーで以下のエラーが発生：
-```
-Failed to resolve import "@/components/ui/label" from "src/pages/Upload.tsx"
-Failed to resolve import "@/components/ui/progress"
-Failed to resolve import "@/components/ui/badge"
-```
-
-**原因:**
-shadcn/uiのコンポーネントがインストールされていない。
-
-**対処法:**
-
-必要なUIコンポーネントを手動で作成：
-
-1. **必要なRadix UIパッケージをインストール**
-```bash
-docker-compose exec frontend-dev npm install @radix-ui/react-label @radix-ui/react-progress @radix-ui/react-select class-variance-authority
-```
-
-2. **コンポーネントファイルを作成**
-- `frontend/src/components/ui/label.tsx`
-- `frontend/src/components/ui/input.tsx`
-- `frontend/src/components/ui/progress.tsx`
-- `frontend/src/components/ui/badge.tsx`
-- `frontend/src/components/ui/alert.tsx`
-- `frontend/src/components/ui/select.tsx`
-
-3. **Viteキャッシュをクリア**
-```bash
-docker-compose exec frontend-dev rm -rf /app/node_modules/.vite
-docker-compose restart frontend-dev
-```
-
-**注意:**
-- shadcn CLI（`npx shadcn-ui@latest add`）はNode 20+が必要だが、コンテナはNode 18を使用
-- 本番環境でもNode 18で動作するため、手動でコンポーネントを作成する方が安全
-
----
-
-### 問題: `api` named export エラー
-
-**症状:**
-フロントエンドのビルド時に以下のエラーが発生：
-```
-No matching export in "src/services/api.ts" for import "api"
-```
-
-**原因:**
-`api.ts`で`api`という名前付きエクスポートが定義されていないが、`Upload.tsx`や`TaskDetail.tsx`で`import { api } from '@/services/api'`としてインポートしている。
-
-**対処法:**
-
-`frontend/src/services/api.ts`にnamed exportを追加：
-
-```typescript
-// Named export for convenience
-export const api = apiClient
-
-export default apiClient
-```
-
-これにより、以下の両方のインポート方法が使用可能：
-```typescript
-import { api } from '@/services/api'  // named import
-import apiClient from '@/services/api'  // default import
-```
-
----
-
-### 問題: React状態更新のタイミングエラー
-
-**症状:**
-`Upload.tsx`でreact-dropzoneを使用してフォームを送信すると、空の値（`""`）がAPIに送信される。
-
-**原因:**
-Reactの`input`要素に直接`.value`を設定しても、Reactの状態管理システムが認識しない。
-
-**対処法:**
-
-ブラウザテスト時にReactの状態を正しく更新：
-
-```javascript
-// 正しい方法：Reactの内部セッターを使用
-const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-  window.HTMLInputElement.prototype,
-  'value'
-).set;
-
-nativeInputValueSetter.call(usernameInput, 'user1');
-usernameInput.dispatchEvent(new Event('input', { bubbles: true }));
-usernameInput.dispatchEvent(new Event('change', { bubbles: true }));
-```
-
-**通常のアプリケーション使用では発生しない問題**
-- この問題は自動テストやブラウザ自動化で発生
-- ユーザーが手動で入力する場合は問題なし
-
----
-
-## 本番環境との違い
-
-| 項目 | 開発環境 | 本番環境 |
-|------|---------|---------|
-| Dockerfile | `Dockerfile.dev` | `Dockerfile` (CUDA対応) |
-| Requirements | `requirements-dev.txt` | `requirements.txt` (GPU版) |
-| GPU | 不要 | 必須（NVIDIA A100） |
-| Whisper | 動作しない | 動作する |
-| CORS | 緩い設定 | 厳密な設定 |
-| ポート | 8001, 5174 | 80, 443 (Nginx経由) |
-
-開発環境ではPhase 1-3（環境構築・認証・ファイルアップロード）の実装と動作確認を行い、GPU必須のPhase 4（Whisper文字起こし）以降は本番環境で実装・テストを行う想定です。
-
----
-
-**最終更新日**: 2025-10-13
-**対応Phase**: Phase 1-3完了時点
+**Last Updated**: 2025-10-13
+**Phase**: Phase 9 - Deployment Preparation

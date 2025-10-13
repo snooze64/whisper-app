@@ -52,16 +52,16 @@
 
 ## 2. コンポーネント設計
 
-### 2.1 フロントエンド (React)
+### 2.1 フロントエンド (React) ✅ Phase 7まで実装完了
 
 **役割**: ユーザーインターフェースの提供
 
 **主要機能**:
-- ファイルアップロード（ドラッグ&ドロップ）
-- 処理状況のリアルタイム表示
-- 文字起こし結果の表示・編集
-- 処理履歴の閲覧
-- 管理者ダッシュボード
+- ✅ ファイルアップロード（ドラッグ&ドロップ）
+- ✅ 処理状況のリアルタイム表示
+- ✅ 文字起こし結果の表示・編集
+- ✅ 処理履歴の閲覧（統計カード、一覧テーブル、ページネーション）
+- ✅ 管理者ダッシュボード（システムステータス、統計、時間別グラフ）
 
 **技術スタック**:
 - React 18 + TypeScript
@@ -347,30 +347,124 @@ GET    /api/v1/tasks                   # タスク一覧（ユーザー）
 DELETE /api/v1/tasks/{task_id}         # タスク削除
 ```
 
-### 4.4 結果取得API
+### 4.4 結果取得API ✅ 実装済み (Phase 6)
 
 ```
-GET    /api/v1/tasks/{task_id}/result       # 文字起こし結果取得
-GET    /api/v1/tasks/{task_id}/subtitle     # 字幕ファイルダウンロード
-PUT    /api/v1/tasks/{task_id}/result       # 結果編集
+GET    /api/v1/tasks/{task_id}/transcription              # 文字起こし結果取得
+PUT    /api/v1/tasks/{task_id}/transcription              # 文字起こし結果更新（全体）
+PATCH  /api/v1/tasks/{task_id}/transcription/segments     # セグメント単位更新
+GET    /api/v1/tasks/{task_id}/subtitle?format=srt|vtt   # 字幕ファイルダウンロード
 ```
 
-### 4.5 履歴API
+**実装詳細**:
+- TranscriptionResponse: 全文、セグメント（JSONB）、メタデータを含む
+- 権限チェック: ユーザー自身または管理者のみアクセス可能
+- 字幕形式: SRT（SubRip）とWebVTT形式をサポート
+- 話者ラベル: 字幕ファイルに自動埋め込み（`[Speaker 1]`、`<v Speaker 1>`）
+- 動的生成: 字幕ファイルはリクエスト時に生成
+
+### 4.5 履歴API ✅ 実装済み (Phase 7)
 
 ```
-GET    /api/v1/history                # 処理履歴一覧
-GET    /api/v1/history/{id}           # 履歴詳細
+GET    /api/v1/history                    # 処理履歴一覧
+GET    /api/v1/history/{id}               # 履歴詳細
+GET    /api/v1/history/stats/me           # ユーザー統計
 ```
 
-### 4.6 管理者API
+**実装詳細**:
+- ProcessingHistoryResponse: 処理時間、GPUメモリ使用量、モデル名、ファイル情報、成功/失敗を含む
+- ページネーション対応: page, page_size パラメータ（デフォルト: page=1, page_size=20）
+- フィルタリング対応: success（成功/失敗）、model_name（モデル名）でフィルタ可能
+- 権限チェック: ユーザーは自分の履歴のみ閲覧可能（管理者は全履歴閲覧可能）
+- ユーザー統計: 指定期間内の統計情報（成功率、平均処理時間、GPU使用量など）
+- 自動記録: タスク完了時（成功・失敗両方）に自動でProcessingHistoryレコード作成
+
+**統計情報レスポンス例**:
+```json
+{
+  "total_tasks": 50,
+  "successful_tasks": 48,
+  "failed_tasks": 2,
+  "success_rate": 96.0,
+  "avg_processing_time": 125.5,
+  "total_processing_time": 6275,
+  "avg_gpu_memory": 8500.0,
+  "total_file_size": 1250.5
+}
+```
+
+### 4.6 管理者API ✅ 実装済み (Phase 7)
 
 ```
 GET    /api/v1/admin/dashboard         # ダッシュボード統計
+GET    /api/v1/admin/system-status     # システムステータス
 GET    /api/v1/admin/users             # ユーザー一覧
 GET    /api/v1/admin/tasks             # 全タスク一覧
-GET    /api/v1/admin/system-status     # システム状態（GPU使用率等）
-PUT    /api/v1/admin/settings          # システム設定変更
+GET    /api/v1/admin/stats             # 全体統計
 ```
+
+**実装詳細**:
+
+#### GET /api/v1/admin/dashboard
+ダッシュボード統計情報を取得（管理者のみ）
+
+**レスポンス例**:
+```json
+{
+  "total_users": 20,
+  "total_tasks": 150,
+  "active_tasks": 5,
+  "completed_tasks_today": 12,
+  "failed_tasks_today": 1,
+  "avg_processing_time_today": 85.5,
+  "model_usage": {
+    "large-v3": 80,
+    "large-v3-turbo": 65,
+    "tiny": 5
+  },
+  "format_usage": {
+    "mp3": 90,
+    "wav": 40,
+    "mp4": 20
+  },
+  "hourly_stats": [
+    {
+      "hour": "2025-10-13T08:00:00",
+      "total": 3,
+      "successful": 3,
+      "failed": 0
+    }
+  ]
+}
+```
+
+#### GET /api/v1/admin/system-status
+システムステータス情報を取得（管理者のみ）
+
+**レスポンス例**:
+```json
+{
+  "gpu_available": true,
+  "gpu_memory_total": 40960,
+  "gpu_memory_used": 12500,
+  "gpu_memory_free": 28460,
+  "gpu_utilization": 35.5,
+  "active_workers": 2,
+  "pending_tasks": 3,
+  "processing_tasks": 2
+}
+```
+
+#### GET /api/v1/admin/users
+全ユーザー一覧を取得（管理者のみ、ページネーション対応）
+
+#### GET /api/v1/admin/tasks
+全ユーザーの全タスク一覧を取得（管理者のみ、ページネーション・フィルタリング対応）
+
+#### GET /api/v1/admin/stats
+全ユーザーの処理統計を取得（管理者のみ、期間指定可能）
+
+**権限チェック**: 全エンドポイントで`require_admin`依存関係により管理者権限を検証
 
 ---
 
@@ -938,6 +1032,8 @@ def calculate_llm_cost(tokens_used: int, model: str) -> float:
 ---
 
 **更新日**: 2025-10-13
-**バージョン**: 1.1
+**バージョン**: 1.2
 **変更履歴**:
+- v1.2 (2025-10-13): Phase 6（結果取得API）実装完了を反映
 - v1.1 (2025-10-13): ChatGPT連携機能の設計を追加
+- v1.0 (2025-10-13): 初版作成

@@ -73,7 +73,7 @@
 **インフラ**:
 - Docker + Docker Compose
 - Nginx
-- NVIDIA GPU (CUDA 11.4/12.4)
+- NVIDIA GPU (CUDA 11.8/12.1+)
 
 ---
 
@@ -115,7 +115,7 @@
 **本番環境（GPU必須）**:
 - Docker + Docker Compose
 - NVIDIA GPU + NVIDIA Container Toolkit
-- CUDA 11.4 または 12.4
+- CUDA 11.8 または 12.1+
 
 ### セットアップ（開発環境）
 
@@ -238,7 +238,7 @@ docker-compose exec frontend npm run test:e2e
 - **メモリ**: 32GB以上
 - **GPU**: NVIDIA A100 40GB（実質利用可能メモリ: 20-30GB）
 - **ストレージ**: 500GB以上
-- **CUDA**: 11.4 または 12.4
+- **CUDA**: 11.8 または 12.1+
 
 ### 性能目標
 
@@ -282,11 +282,37 @@ docker-compose exec frontend npm run test:e2e
 | Phase 1: 環境構築・基盤実装 | ✅ 完了 | 2025-10-13 |
 | Phase 2: 認証・ユーザー管理 | ✅ 完了 | 2025-10-13 |
 | Phase 3: ファイルアップロード機能 | ✅ 完了 | 2025-10-13 |
-| Phase 4: Whisper文字起こし機能 | 📋 未着手 | - |
+| Phase 4: Whisper文字起こし機能 | ✅ 完了 | 2025-10-13 |
+| Phase 5: 話者分離機能 (Resemblyzer) | ✅ 完了 | 2025-10-13 |
+| Phase 6: 結果表示・編集機能 | ✅ 完了 | 2025-10-13 |
+| Phase 7: 処理履歴・管理機能 | 📋 未着手 | - |
 
 詳細は[開発計画書](./docs/development-plan.md)を参照してください。
+
+### Phase 6 実装状況 ✅ 完了
+
+**バックエンド**:
+- ✅ Transcriptionモデル・マイグレーション
+- ✅ 文字起こし結果取得/編集API（3エンドポイント）
+- ✅ 字幕ファイル生成（SRT/VTT形式、話者ラベル付き）
+- ✅ 字幕ダウンロードAPI
+
+**フロントエンド**:
+- ✅ 結果表示コンポーネント（TranscriptionViewer）
+- ✅ セグメント編集UI（インライン編集）
+- ✅ タイムスタンプ表示・編集
+- ✅ 話者ラベル表示・変更
+- ✅ 字幕ダウンロードボタン（SRT/VTT）
+
+### 重要な技術的注意事項
+
+**Resemblyzer依存関係**:
+- `numpy==1.23.5` 必須（1.24+は非互換）
+- `librosa==0.9.1` 必須（0.10+は非互換）
+
+詳細は[技術スタック選定書](./docs/technology-stack.md)を参照してください。
 
 ---
 
 **最終更新日**: 2025-10-13
-**バージョン**: 1.0.0
+**バージョン**: 1.0.1

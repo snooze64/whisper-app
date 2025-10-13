@@ -3,6 +3,9 @@
  */
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios'
 import { TokenResponse, LoginRequest, User } from '@/types/auth'
+import { Transcription, TranscriptionUpdate, SegmentUpdateRequest } from '@/types/transcription'
+import { ProcessingHistory, ProcessingHistoryListResponse, ProcessingHistoryStats, HistoryListParams } from '@/types/history'
+import { DashboardStats, SystemStatus, TaskListResponse, UserListResponse, OverallStats, TaskListParams, UserListParams } from '@/types/admin'
 
 // API base URL
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -92,6 +95,87 @@ export const authAPI = {
 
   getCurrentUser: async (): Promise<User> => {
     const response = await apiClient.get<User>('/api/v1/auth/me')
+    return response.data
+  },
+}
+
+// Transcription API
+export const transcriptionAPI = {
+  getTranscription: async (taskId: string): Promise<Transcription> => {
+    const response = await apiClient.get<Transcription>(`/api/v1/tasks/${taskId}/transcription`)
+    return response.data
+  },
+
+  updateTranscription: async (taskId: string, data: TranscriptionUpdate): Promise<Transcription> => {
+    const response = await apiClient.put<Transcription>(`/api/v1/tasks/${taskId}/transcription`, data)
+    return response.data
+  },
+
+  updateSegment: async (taskId: string, data: SegmentUpdateRequest): Promise<Transcription> => {
+    const response = await apiClient.patch<Transcription>(`/api/v1/tasks/${taskId}/transcription/segments`, data)
+    return response.data
+  },
+
+  downloadSubtitle: async (taskId: string, format: 'srt' | 'vtt'): Promise<Blob> => {
+    const response = await apiClient.get(`/api/v1/tasks/${taskId}/subtitle`, {
+      params: { format },
+      responseType: 'blob',
+    })
+    return response.data
+  },
+
+  downloadText: async (taskId: string): Promise<Blob> => {
+    const response = await apiClient.get(`/api/v1/tasks/${taskId}/text`, {
+      responseType: 'blob',
+    })
+    return response.data
+  },
+}
+
+// History API
+export const historyAPI = {
+  getHistoryList: async (params?: HistoryListParams): Promise<ProcessingHistoryListResponse> => {
+    const response = await apiClient.get<ProcessingHistoryListResponse>('/api/v1/history', { params })
+    return response.data
+  },
+
+  getHistoryDetail: async (historyId: number): Promise<ProcessingHistory> => {
+    const response = await apiClient.get<ProcessingHistory>(`/api/v1/history/${historyId}`)
+    return response.data
+  },
+
+  getMyStats: async (days?: number): Promise<ProcessingHistoryStats> => {
+    const response = await apiClient.get<ProcessingHistoryStats>('/api/v1/history/stats/me', {
+      params: days ? { days } : undefined,
+    })
+    return response.data
+  },
+}
+
+// Admin API
+export const adminAPI = {
+  getDashboardStats: async (): Promise<DashboardStats> => {
+    const response = await apiClient.get<DashboardStats>('/api/v1/admin/dashboard')
+    return response.data
+  },
+
+  getSystemStatus: async (): Promise<SystemStatus> => {
+    const response = await apiClient.get<SystemStatus>('/api/v1/admin/system-status')
+    return response.data
+  },
+
+  getAllUsers: async (params?: UserListParams): Promise<UserListResponse> => {
+    const response = await apiClient.get<UserListResponse>('/api/v1/admin/users', { params })
+    return response.data
+  },
+
+  getAllTasks: async (params?: TaskListParams): Promise<TaskListResponse> => {
+    const response = await apiClient.get<TaskListResponse>('/api/v1/admin/tasks', { params })
+    return response.data
+  },
+
+  getOverallStats: async (): Promise<OverallStats> => {
+    const response = await apiClient.get<OverallStats>('/api/v1/admin/stats')
     return response.data
   },
 }

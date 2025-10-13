@@ -67,11 +67,11 @@ services:
     networks:
       - whisper-network
 
-  # Celery Worker (GPU)
+  # Celery Worker (Development - CPU)
   celery-worker:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: whisper-celery-worker
     command: celery -A app.celery_app worker --loglevel=info --concurrency=1
     volumes:
@@ -84,14 +84,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - CUDA_VISIBLE_DEVICES=0
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+      # GPU configuration removed for development (CPU only)
     depends_on:
       - redis
       - postgres

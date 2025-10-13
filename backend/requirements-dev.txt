@@ -30,6 +30,10 @@ email-validator==2.1.0
 # Note: For GPU support, use requirements.txt with CUDA-enabled packages
 # faster-whisper and its dependencies will fail to install without proper CUDA setup
 # For development, transcription will use mock mode
+numpy==1.24.3
+scikit-learn==1.3.2
+librosa==0.10.1
+resemblyzer==0.1.1.dev0
 
 # Testing
 pytest==7.4.3

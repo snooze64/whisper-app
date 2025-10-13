@@ -13,7 +13,7 @@ celery_app = Celery(
     include=[
         "app.tasks.transcription_tasks",
         # Phase 4 complete: audio_extraction is imported within transcription_tasks
-        # "app.tasks.diarization",  # Phase 5 - TODO
+        # Phase 5 complete: diarization is imported within transcription_tasks
         # "app.tasks.subtitle",  # Phase 6 - TODO
         # "app.tasks.cleanup",  # Phase 7 - TODO
     ],
@@ -31,8 +31,7 @@ celery_app.conf.update(
     # Task routing
     task_routes={
         "app.tasks.transcription_tasks.*": {"queue": "transcription"},
-        # Phase 4 complete - all tasks use transcription queue
-        # "app.tasks.diarization.*": {"queue": "diarization"},  # Phase 5 - TODO
+        # Phase 4-5 complete - all tasks use transcription queue
         # "app.tasks.subtitle.*": {"queue": "subtitle"},  # Phase 6 - TODO
         # "app.tasks.cleanup.*": {"queue": "cleanup"},  # Phase 7 - TODO
     },

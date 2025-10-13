@@ -53,6 +53,7 @@ services:
       - upload-data:/data/uploads
       - result-data:/data/results
       - temp-data:/data/temp
+      - model-cache:/root/.cache/huggingface
     ports:
       - "8001:8000"
     environment:
@@ -82,6 +83,7 @@ services:
       - upload-data:/data/uploads
       - result-data:/data/results
       - temp-data:/data/temp
+      - model-cache:/root/.cache/huggingface
     environment:
       - DATABASE_URL=postgresql://user:password@postgres:5432/whisper
       - REDIS_URL=redis://redis:6379/0
@@ -119,6 +121,7 @@ volumes:
   upload-data:
   result-data:
   temp-data:
+  model-cache:
 
 networks:
   whisper-network:

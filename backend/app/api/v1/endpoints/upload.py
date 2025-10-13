@@ -69,7 +69,8 @@ async def upload_file(
             task_id=str(task.id),
             file_path=file_path,
             model_name=model,
-            language=language
+            language=language,
+            num_speakers=num_speakers
         )
         logger.info(f"Started transcription workflow for task {task.id}")
     except Exception as e:

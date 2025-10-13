@@ -19,6 +19,7 @@ from app.db.session import get_db_context
 from app.models.task import Task as TaskModel
 from app.tasks.audio_extraction import extract_audio, get_audio_duration, cleanup_temp_audio
 from app.tasks.gpu_monitor import get_gpu_monitor, get_model_memory_requirement
+from app.tasks.diarization import get_diarizer
 
 logger = logging.getLogger(__name__)
 
@@ -372,6 +373,93 @@ def transcribe_audio_task(
         raise self.retry(exc=e, countdown=300)  # Retry after 5 minutes
 
 
+@celery_app.task(bind=True, max_retries=2)
+def diarize_audio_task(
+    self: Task,
+    transcription_result: Dict[str, Any],
+    task_id: str,
+    num_speakers: Optional[int] = None
+) -> Dict[str, Any]:
+    """
+    Perform speaker diarization on transcribed segments
+
+    Args:
+        transcription_result: Result from transcribe_audio_task (contains segments and audio_file)
+        task_id: Task UUID
+        num_speakers: Number of speakers (if None, auto-detect)
+
+    Returns:
+        Dictionary with diarized segments and audio_file
+    """
+    segments = transcription_result.get("segments")
+    audio_file = transcription_result.get("audio_file")
+
+    if not segments:
+        raise ValueError("segments not found in transcription_result")
+    if not audio_file:
+        raise ValueError("audio_file not found in transcription_result")
+
+    logger.info(f"Starting diarization for task {task_id}")
+    logger.info(f"Number of speakers: {num_speakers or 'auto-detect'}")
+
+    try:
+        # Update progress
+        with get_db_context() as db:
+            result = db.execute(
+                select(TaskModel).where(TaskModel.id == UUID(task_id))
+            )
+            task = result.scalar_one_or_none()
+            if task:
+                task.progress = 85
+                db.commit()
+
+        # Initialize diarizer
+        diarizer = get_diarizer()
+
+        # Perform diarization
+        diarized_segments = diarizer.diarize(
+            audio_file=audio_file,
+            segments=segments,
+            num_speakers=num_speakers
+        )
+
+        logger.info(f"Diarization complete: {len(diarized_segments)} segments with speaker labels")
+
+        # Update progress
+        with get_db_context() as db:
+            result = db.execute(
+                select(TaskModel).where(TaskModel.id == UUID(task_id))
+            )
+            task = result.scalar_one_or_none()
+            if task:
+                task.progress = 90
+                db.commit()
+
+        return {
+            "segments": diarized_segments,
+            "audio_file": audio_file
+        }
+
+    except Exception as e:
+        logger.error(f"Diarization failed: {e}")
+
+        # Update task status to failed
+        try:
+            with get_db_context() as db:
+                result = db.execute(
+                    select(TaskModel).where(TaskModel.id == UUID(task_id))
+                )
+                task = result.scalar_one_or_none()
+                if task:
+                    task.status = "failed"
+                    task.error_message = f"Diarization failed: {str(e)}"
+                    db.commit()
+        except:
+            pass
+
+        raise self.retry(exc=e, countdown=120)  # Retry after 2 minutes
+
+
 @celery_app.task(bind=True)
 def save_transcription_result(
     self: Task,
@@ -451,7 +539,13 @@ def save_transcription_result(
         raise
 
 
-def start_transcription_workflow(task_id: str, file_path: str, model_name: str, language: str):
+def start_transcription_workflow(
+    task_id: str,
+    file_path: str,
+    model_name: str,
+    language: str,
+    num_speakers: Optional[int] = None
+):
     """
     Start transcription workflow (task chain)
 
@@ -460,15 +554,17 @@ def start_transcription_workflow(task_id: str, file_path: str, model_name: str, 
         file_path: Path to uploaded file
         model_name: Whisper model name
         language: Language code
+        num_speakers: Number of speakers for diarization (if None, auto-detect)
     """
     logger.info(f"Starting transcription workflow for task {task_id}")
 
-    # Create task chain: extract_audio -> transcribe -> save_result
+    # Create task chain: extract_audio -> transcribe -> diarize -> save_result
     # Note: chain passes result from previous task as first argument to next task
     workflow = (
         extract_audio_task.si(task_id, file_path) |  # signature with immutable args
         transcribe_audio_task.s(task_id, model_name, language) |  # receives audio_file from extract_audio_task
-        save_transcription_result.s(task_id)  # receives segments from transcribe_audio_task
+        diarize_audio_task.s(task_id, num_speakers) |  # receives segments from transcribe_audio_task
+        save_transcription_result.s(task_id)  # receives diarized segments from diarize_audio_task
     )
 
     # Execute workflow asynchronously

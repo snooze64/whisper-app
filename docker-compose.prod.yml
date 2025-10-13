@@ -195,6 +195,29 @@ services:
         max-size: "100m"
         max-file: "5"
 
+  # Frontend Build Service (run before deploying)
+  # Usage:
+  #   1. Build: docker-compose -f docker-compose.prod.yml build frontend-build
+  #   2. Extract dist: docker-compose -f docker-compose.prod.yml run --rm frontend-build sh -c "cp -r /usr/share/nginx/html/* /dist/"
+  # Or use the build script: ./scripts/build-frontend.sh
+  frontend-build:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - HTTP_PROXY=${HTTP_PROXY:-}
+        - HTTPS_PROXY=${HTTPS_PROXY:-}
+        - NO_PROXY=${NO_PROXY:-}
+        - VITE_API_URL=${VITE_API_URL}
+    container_name: whisper-frontend-build
+    image: whisper-frontend:latest
+    volumes:
+      - ./frontend/dist:/dist
+    profiles:
+      - build
+    networks:
+      - whisper-network
+
   # Nginx Reverse Proxy with SSL
   nginx:
     image: nginx:alpine

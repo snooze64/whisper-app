@@ -8,6 +8,9 @@ ARG HTTP_PROXY
 ARG HTTPS_PROXY
 ARG NO_PROXY
 
+# Frontend API URL for build time
+ARG VITE_API_URL
+
 # Set environment variables for proxy
 ENV HTTP_PROXY=${HTTP_PROXY} \
     HTTPS_PROXY=${HTTPS_PROXY} \
@@ -15,6 +18,9 @@ ENV HTTP_PROXY=${HTTP_PROXY} \
     http_proxy=${HTTP_PROXY} \
     https_proxy=${HTTPS_PROXY} \
     no_proxy=${NO_PROXY}
+
+# Set VITE_API_URL for build
+ENV VITE_API_URL=${VITE_API_URL}
 
 WORKDIR /app
 

@@ -144,7 +144,7 @@ services:
     ports:
       - "5174:5173"
     environment:
-      - VITE_API_URL=http://localhost:8001
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:8001}
       - HTTP_PROXY=${HTTP_PROXY:-}
       - HTTPS_PROXY=${HTTPS_PROXY:-}
       - NO_PROXY=${NO_PROXY:-}

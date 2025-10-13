@@ -29,13 +29,10 @@ celery_app.conf.update(
     enable_utc=True,
 
     # Task routing
-    # Note: For development, use default 'celery' queue
-    # In production, configure worker to listen to specific queues
-    # task_routes={
-    #     "app.tasks.transcription_tasks.*": {"queue": "transcription"},
-    #     # "app.tasks.subtitle.*": {"queue": "subtitle"},  # Phase 6 - TODO
-    #     # "app.tasks.cleanup.*": {"queue": "cleanup"},  # Phase 7 - TODO
-    # },
+    # Route transcription tasks to 'transcription' queue
+    task_routes={
+        "app.tasks.transcription_tasks.*": {"queue": "transcription"},
+    },
 
     # Worker settings
     worker_prefetch_multiplier=1,  # Process one task at a time

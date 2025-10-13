@@ -91,12 +91,17 @@
 | [データベース設計書](./docs/database-design.md) | データベーススキーマ設計 |
 | [開発計画書](./docs/development-plan.md) | 開発スケジュールとタスク |
 
-### 開発・運用ドキュメント（作成予定）
+### 開発・運用ドキュメント
+
+| ドキュメント | 説明 |
+|------------|------|
+| [トラブルシューティング](./docs/troubleshooting.md) | よくある問題と解決方法 |
+
+### 作成予定ドキュメント
 
 - API仕様書
 - セットアップガイド
 - デプロイガイド
-- トラブルシューティング
 
 ---
 
@@ -104,6 +109,10 @@
 
 ### 前提条件
 
+**開発環境（MacBook Air等、GPU不要）**:
+- Docker + Docker Compose
+
+**本番環境（GPU必須）**:
 - Docker + Docker Compose
 - NVIDIA GPU + NVIDIA Container Toolkit
 - CUDA 11.4 または 12.4
@@ -115,25 +124,44 @@
 git clone https://github.com/snooze64/whisper-app.git
 cd whisper-app
 
-# 環境変数の設定
-cp backend/.env.example backend/.env
-# backend/.env ファイルを編集（必要に応じて）
-
 # 開発用Dockerコンテナのビルドと起動
-docker-compose up -d postgres redis backend frontend-dev
+docker-compose up -d --build
 
 # データベースマイグレーション
 docker-compose exec backend alembic upgrade head
 
 # アクセス
-# フロントエンド: http://localhost:5173
-# バックエンドAPI: http://localhost:8000
-# API ドキュメント: http://localhost:8000/api/docs
+# フロントエンド: http://localhost:5174
+# バックエンドAPI: http://localhost:8001
+# API ドキュメント: http://localhost:8001/api/docs
 ```
+
+### ログイン（開発環境）
+
+開発環境ではモック認証が有効になっており、以下のアカウントでログイン可能です：
+
+| ユーザー名 | パスワード | 権限 |
+|----------|----------|------|
+| admin | admin123 | 管理者 |
+| user1 | user123 | 一般ユーザー |
+
+**ログイン手順**:
+1. ブラウザで http://localhost:5174 にアクセス
+2. ログインページで上記のアカウント情報を入力
+3. ログイン成功後、ダッシュボードが表示される
+
+### トラブルシューティング
+
+問題が発生した場合は、[トラブルシューティングガイド](./docs/troubleshooting.md)を参照してください。
+
+主な解決方法：
+- ポート競合エラー → ポート番号を変更
+- GPU/CUDA関連エラー → 開発用Dockerfileを使用
+- CORS設定エラー → 環境変数の修正
 
 ### 本番環境デプロイ
 
-詳細は[デプロイガイド](./docs/deployment-guide.md)を参照してください。
+詳細は[デプロイガイド](./docs/deployment-guide.md)を参照してください（作成予定）。
 
 ---
 
@@ -152,8 +180,10 @@ whisper-app/
 │   │   ├── services/    # ビジネスロジック
 │   │   └── tasks/       # Celery タスク
 │   ├── tests/           # テスト
-│   ├── Dockerfile
-│   └── requirements.txt
+│   ├── Dockerfile       # 本番用（GPU対応）
+│   ├── Dockerfile.dev   # 開発用（GPU不要）
+│   ├── requirements.txt # 本番用（GPU版）
+│   └── requirements-dev.txt  # 開発用（CPU版）
 ├── frontend/            # React フロントエンド
 │   ├── src/
 │   │   ├── components/  # コンポーネント
@@ -161,10 +191,15 @@ whisper-app/
 │   │   ├── hooks/       # カスタムフック
 │   │   ├── services/    # API クライアント
 │   │   └── stores/      # 状態管理
-│   ├── Dockerfile
+│   ├── Dockerfile.dev   # 開発用
 │   └── package.json
 ├── nginx/               # Nginx 設定
 ├── docs/                # ドキュメント
+│   ├── requirement.md
+│   ├── architecture.md
+│   ├── database-design.md
+│   ├── development-plan.md
+│   └── troubleshooting.md
 ├── docker-compose.yml   # Docker Compose 設定
 └── README.md
 ```
@@ -237,6 +272,19 @@ docker-compose exec frontend npm run test:e2e
 ## 📧 お問い合わせ
 
 （お問い合わせ先を記載）
+
+---
+
+## 📝 プロジェクト進捗
+
+| Phase | ステータス | 完了日 |
+|-------|----------|--------|
+| Phase 1: 環境構築・基盤実装 | ✅ 完了 | 2025-10-13 |
+| Phase 2: 認証・ユーザー管理 | ✅ 完了 | 2025-10-13 |
+| Phase 3: ファイルアップロード機能 | 🔄 計画中 | - |
+| Phase 4: Whisper文字起こし機能 | 📋 未着手 | - |
+
+詳細は[開発計画書](./docs/development-plan.md)を参照してください。
 
 ---
 

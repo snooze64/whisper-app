@@ -234,6 +234,11 @@ docker-compose restart backend
 - 開発環境: docker-compose.ymlの環境変数でJSON配列形式を使用
 - 本番環境: 環境変数ファイルでカンマ区切り文字列を使用
 
+**重要**: フロントエンド開発サーバーのポート（5174）を必ずCORS設定に含める：
+```yaml
+- BACKEND_CORS_ORIGINS=["http://localhost:3000","http://localhost:5173","http://localhost:5174","http://localhost:8001"]
+```
+
 ---
 
 ## 依存パッケージエラー
@@ -333,6 +338,58 @@ docker-compose logs frontend-dev --tail 20
 curl http://localhost:8001/
 curl http://localhost:8001/health
 ```
+
+---
+
+## モック認証（開発環境）
+
+### 問題: LDAP サーバーがないためログインできない
+
+**症状:**
+開発環境でLDAPサーバーが利用できず、ログイン機能のテストができない。
+
+**対処法:**
+
+開発環境ではモック認証を使用してLDAPサーバーなしでログインが可能です。
+
+**1. モック認証の有効化**
+
+docker-compose.ymlで`USE_MOCK_AUTH=true`を設定（開発環境では既に設定済み）：
+
+```yaml
+backend:
+  environment:
+    - USE_MOCK_AUTH=true
+```
+
+**2. テストアカウント**
+
+以下のアカウントでログイン可能：
+
+| ユーザー名 | パスワード | 権限 |
+|----------|----------|------|
+| admin | admin123 | 管理者 |
+| user1 | user123 | 一般ユーザー |
+
+**3. ログイン確認**
+
+```bash
+# API経由でログインテスト
+curl -X POST http://localhost:8001/api/v1/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"admin123"}'
+```
+
+**4. ブラウザでログイン**
+
+1. http://localhost:5174 にアクセス
+2. ログインページで上記のアカウント情報を入力
+3. ログイン成功後、ダッシュボードが表示される
+
+**注意:**
+- モック認証は開発環境専用です
+- 本番環境では`USE_MOCK_AUTH=false`（デフォルト）でLDAP認証を使用
+- モックユーザーは`backend/app/services/auth_service.py`で定義されています
 
 ---
 

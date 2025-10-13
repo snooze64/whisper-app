@@ -60,10 +60,16 @@ class WhisperTranscriberTransformers:
         self.device = device
 
         # Determine torch dtype
+        # Note: Whisper models require floating point dtypes
         if torch_dtype == "float16" and device == "cuda":
             self.torch_dtype = torch.float16
         elif torch_dtype == "int8":
-            self.torch_dtype = torch.int8
+            # int8 is not supported for model weights in transformers Whisper
+            # Fall back to float32 for CPU compatibility
+            logger.warning(
+                f"int8 dtype not supported for Whisper models, using float32 instead"
+            )
+            self.torch_dtype = torch.float32
         else:
             self.torch_dtype = torch.float32
 

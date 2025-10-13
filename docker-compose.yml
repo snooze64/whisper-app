@@ -84,6 +84,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - WHISPER_BACKEND=transformers
       # GPU configuration removed for development (CPU only)
     depends_on:
       - redis

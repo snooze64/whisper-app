@@ -53,6 +53,9 @@ logs/
 htmlcov/
 .pytest_cache/
 .tox/
+.playwright-mcp/
+test-results/
+playwright-report/
 
 # Database
 *.db

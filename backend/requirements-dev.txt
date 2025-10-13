@@ -26,6 +26,11 @@ pydantic-settings==2.1.0
 python-dotenv==1.0.0
 email-validator==2.1.0
 
+# Audio/Transcription (Development - CPU only)
+# Note: For GPU support, use requirements.txt with CUDA-enabled packages
+# faster-whisper and its dependencies will fail to install without proper CUDA setup
+# For development, transcription will use mock mode
+
 # Testing
 pytest==7.4.3
 pytest-asyncio==0.21.1

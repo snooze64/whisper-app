@@ -129,17 +129,19 @@
 
 | ファイル | 用途 | 使用方法 |
 |---------|------|---------|
-| `docker-compose.yml` | **開発環境用（デフォルト）** | `docker-compose up -d` |
-| `docker-compose.prod.yml` | **本番環境用** | `docker-compose -f docker-compose.prod.yml up -d` |
+| `docker-compose.cpu.yml` | **CPU環境用（開発向け）** | `docker-compose -f docker-compose.cpu.yml up -d --build` |
+| `docker-compose.gpu.yml` | **GPU環境用（本番向け）** | `docker-compose -f docker-compose.gpu.yml up -d --build` |
 
-**開発環境の特徴**:
-- GPU不要（CPU版faster-whisper、またはモックモード）
+**CPU環境の特徴**:
+- GPU不要（MacなどGPUなし環境）
+- CPU版faster-whisper、またはモックモード
 - ホットリロード対応
 - モック認証有効
 - ポート: フロントエンド 5174、バックエンド 8001
 
-**本番環境の特徴**:
-- GPU必須（CUDA対応）
+**GPU環境の特徴**:
+- GPU必須（CUDA対応サーバー）
+- GPU版faster-whisper（高速処理）
 - SSL/HTTPS対応
 - 自動バックアップ
 - ファイル自動クリーンアップ
@@ -157,11 +159,11 @@ cp .env.example .env
 # 必要に応じて.envを編集（プロキシ設定など）
 # 詳細は docs/setup-guide.md を参照
 
-# 開発用Dockerコンテナのビルドと起動
-docker-compose up -d --build
+# CPU環境用Dockerコンテナのビルドと起動
+docker-compose -f docker-compose.cpu.yml up -d --build
 
 # データベースマイグレーション
-docker-compose exec backend alembic upgrade head
+docker-compose -f docker-compose.cpu.yml exec backend alembic upgrade head
 
 # アクセス
 # フロントエンド: http://localhost:5174
@@ -194,7 +196,7 @@ docker-compose exec backend alembic upgrade head
 
 **切り替え方法**:
 
-`docker-compose.yml` の `celery-worker` サービスに環境変数を設定：
+`docker-compose.cpu.yml` または `docker-compose.gpu.yml` の `celery-worker` サービスに環境変数を設定：
 
 ```yaml
 celery-worker:
@@ -218,14 +220,14 @@ celery-worker:
 - GPU/CUDA関連エラー → 開発用Dockerfileを使用
 - CORS設定エラー → 環境変数の修正
 
-### セットアップ（本番環境）
+### セットアップ（GPU環境 / 本番環境）
 
-本番環境では `docker-compose.prod.yml` を使用します：
+GPU環境では `docker-compose.gpu.yml` を使用します：
 
 ```bash
 # 環境変数ファイルの作成と編集
 cp .env.example .env
-nano .env  # 本番用の設定に変更
+nano .env  # GPU環境/本番用の設定に変更
 # - データベース、Redis、LDAPの設定
 # - シークレットキーの生成
 # - ドメイン名とSSL設定
@@ -235,14 +237,14 @@ nano .env  # 本番用の設定に変更
 # フロントエンドのビルド
 ./scripts/build-frontend.sh
 
-# 本番用Dockerコンテナのビルドと起動
-docker-compose -f docker-compose.prod.yml up -d --build
+# GPU環境用Dockerコンテナのビルドと起動
+docker-compose -f docker-compose.gpu.yml up -d --build
 
 # データベースマイグレーション
-docker-compose -f docker-compose.prod.yml exec backend alembic upgrade head
+docker-compose -f docker-compose.gpu.yml exec backend alembic upgrade head
 
 # ログ確認
-docker-compose -f docker-compose.prod.yml logs -f
+docker-compose -f docker-compose.gpu.yml logs -f
 ```
 
 詳細な本番環境セットアップ手順は[デプロイガイド](./docs/deployment-guide.md)を参照してください。
@@ -264,10 +266,10 @@ whisper-app/
 │   │   ├── services/    # ビジネスロジック
 │   │   └── tasks/       # Celery タスク
 │   ├── tests/           # テスト
-│   ├── Dockerfile       # 本番用（GPU対応）
-│   ├── Dockerfile.dev   # 開発用（GPU不要）
-│   ├── requirements.txt # 本番用（GPU版、faster-whisper）
-│   ├── requirements-dev.txt  # 開発用（CPU版）
+│   ├── Dockerfile.gpu   # GPU環境用（CUDA対応）
+│   ├── Dockerfile.cpu   # CPU環境用（GPU不要）
+│   ├── requirements.txt # GPU版（faster-whisper）
+│   ├── requirements-dev.txt  # CPU版
 │   └── requirements-transformers-cuda114.txt  # CUDA 11.4用（transformers）
 ├── frontend/            # React フロントエンド
 │   ├── src/
@@ -276,7 +278,8 @@ whisper-app/
 │   │   ├── hooks/       # カスタムフック
 │   │   ├── services/    # API クライアント
 │   │   └── stores/      # 状態管理
-│   ├── Dockerfile.dev   # 開発用
+│   ├── Dockerfile       # 本番ビルド用
+│   ├── Dockerfile.cpu   # 開発用（CPU環境）
 │   └── package.json
 ├── nginx/               # Nginx 設定
 ├── docs/                # ドキュメント
@@ -285,8 +288,8 @@ whisper-app/
 │   ├── database-design.md
 │   ├── development-plan.md
 │   └── troubleshooting.md
-├── docker-compose.yml   # Docker Compose 設定（開発環境）
-├── docker-compose.prod.yml  # Docker Compose 設定（本番環境）
+├── docker-compose.cpu.yml  # Docker Compose 設定（CPU環境／開発環境）
+├── docker-compose.gpu.yml  # Docker Compose 設定（GPU環境／本番環境）
 └── README.md
 ```
 
@@ -304,13 +307,13 @@ whisper-app/
 
 ```bash
 # バックエンドテスト
-docker-compose exec backend pytest
+docker-compose -f docker-compose.cpu.yml exec backend pytest
 
 # フロントエンドテスト
-docker-compose exec frontend npm test
+docker-compose -f docker-compose.cpu.yml exec frontend-dev npm test
 
 # E2Eテスト
-docker-compose exec frontend npm run test:e2e
+docker-compose -f docker-compose.cpu.yml exec frontend-dev npm run test:e2e
 ```
 
 ---

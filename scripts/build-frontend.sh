@@ -28,13 +28,13 @@ echo ""
 
 # Build the frontend image
 echo "Step 1/2: Building frontend Docker image..."
-docker-compose -f docker-compose.prod.yml build frontend-build
+docker-compose -f docker-compose.gpu.yml build frontend-build
 
 # Extract dist directory
 echo ""
 echo "Step 2/2: Extracting build artifacts to ./frontend/dist..."
 rm -rf ./frontend/dist
-docker-compose -f docker-compose.prod.yml run --rm frontend-build sh -c "cp -r /usr/share/nginx/html/* /dist/"
+docker-compose -f docker-compose.gpu.yml run --rm frontend-build sh -c "cp -r /usr/share/nginx/html/* /dist/"
 
 echo ""
 echo "===================================="

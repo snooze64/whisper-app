@@ -70,7 +70,7 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.gpu
       args:
         - PYTHON_VERSION=3.11
         - HTTP_PROXY=${HTTP_PROXY:-}
@@ -141,7 +141,7 @@ services:
   celery-worker:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.gpu
       args:
         - PYTHON_VERSION=3.11
         - HTTP_PROXY=${HTTP_PROXY:-}
@@ -278,7 +278,7 @@ services:
   file-cleanup:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.gpu
     container_name: whisper-file-cleanup
     restart: always
     command: python -m app.scripts.cleanup_files
@@ -365,4 +365,4 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.25.0.0/16
+        - subnet: 172.28.0.0/16

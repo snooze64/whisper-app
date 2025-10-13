@@ -144,10 +144,10 @@ chmod +x scripts/build-frontend.sh
 
 ```bash
 # フロントエンドのDockerイメージをビルド
-docker-compose -f docker-compose.prod.yml build frontend-build
+docker-compose -f docker-compose.gpu.yml build frontend-build
 
 # ビルド成果物を抽出
-docker-compose -f docker-compose.prod.yml run --rm frontend-build \
+docker-compose -f docker-compose.gpu.yml run --rm frontend-build \
   sh -c "cp -r /usr/share/nginx/html/* /dist/"
 ```
 
@@ -172,13 +172,13 @@ chmod 755 data backup logs certbot
 
 ```bash
 # nginxを一時的に起動 (HTTPのみ)
-docker-compose -f docker-compose.prod.yml up -d nginx postgres redis
+docker-compose -f docker-compose.gpu.yml up -d nginx postgres redis
 
 # nginxの準備ができるまで待機
 sleep 10
 
 # 証明書の取得
-docker-compose -f docker-compose.prod.yml run --rm certbot certonly \
+docker-compose -f docker-compose.gpu.yml run --rm certbot certonly \
   --webroot \
   --webroot-path=/var/www/certbot \
   --email admin@yourdomain.com \
@@ -190,7 +190,7 @@ docker-compose -f docker-compose.prod.yml run --rm certbot certonly \
 ls -la certbot/conf/live/yourdomain.com/
 
 # 一時的なnginxの停止
-docker-compose -f docker-compose.prod.yml down
+docker-compose -f docker-compose.gpu.yml down
 ```
 
 #### 既存の証明書を使用する場合
@@ -210,33 +210,33 @@ chmod 600 certbot/conf/live/yourdomain.com/*.pem
 
 ```bash
 # すべてのサービスをビルドして起動
-docker-compose -f docker-compose.prod.yml up -d --build
+docker-compose -f docker-compose.gpu.yml up -d --build
 
 # 起動状況の監視
-docker-compose -f docker-compose.prod.yml logs -f
+docker-compose -f docker-compose.gpu.yml logs -f
 
 # サービスがヘルシーになるまで待機
-docker-compose -f docker-compose.prod.yml ps
+docker-compose -f docker-compose.gpu.yml ps
 ```
 
 ### ステップ7: データベースの初期化
 
 ```bash
 # マイグレーションの適用
-docker-compose -f docker-compose.prod.yml exec backend alembic upgrade head
+docker-compose -f docker-compose.gpu.yml exec backend alembic upgrade head
 
 # テーブルが作成されたことを確認
-docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "\dt"
+docker-compose -f docker-compose.gpu.yml exec postgres psql -U whisper_prod -d whisper_prod -c "\dt"
 
 # マイグレーションステータスの確認
-docker-compose -f docker-compose.prod.yml exec backend alembic current
+docker-compose -f docker-compose.gpu.yml exec backend alembic current
 ```
 
 ### ステップ8: 管理者ユーザーの作成
 
 ```bash
 # データベースへのアクセス
-docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod
+docker-compose -f docker-compose.gpu.yml exec postgres psql -U whisper_prod -d whisper_prod
 
 # 管理者ユーザーの作成 (最初のLDAPログイン時に作成され、その後昇格)
 # 最初のLDAPログイン後、以下を実行:
@@ -261,13 +261,13 @@ SELECT id, username, email, is_admin FROM users;
 
 ```bash
 # 更新のテスト (ドライラン)
-docker-compose -f docker-compose.prod.yml run --rm certbot renew --dry-run
+docker-compose -f docker-compose.gpu.yml run --rm certbot renew --dry-run
 
 # 強制更新 (必要な場合)
-docker-compose -f docker-compose.prod.yml run --rm certbot renew --force-renewal
+docker-compose -f docker-compose.gpu.yml run --rm certbot renew --force-renewal
 
 # 更新後にnginxをリロード
-docker-compose -f docker-compose.prod.yml exec nginx nginx -s reload
+docker-compose -f docker-compose.gpu.yml exec nginx nginx -s reload
 ```
 
 ### 証明書更新のCronジョブ
@@ -275,7 +275,7 @@ docker-compose -f docker-compose.prod.yml exec nginx nginx -s reload
 certbotコンテナは1日2回自動的に更新を試みます。ログの監視:
 
 ```bash
-docker-compose -f docker-compose.prod.yml logs certbot
+docker-compose -f docker-compose.gpu.yml logs certbot
 ```
 
 ### SSL設定の更新
@@ -287,10 +287,10 @@ NginxのSSL設定を更新するには:
 nano nginx/nginx.prod.conf
 
 # 設定のテスト
-docker-compose -f docker-compose.prod.yml exec nginx nginx -t
+docker-compose -f docker-compose.gpu.yml exec nginx nginx -t
 
 # nginxのリロード
-docker-compose -f docker-compose.prod.yml exec nginx nginx -s reload
+docker-compose -f docker-compose.gpu.yml exec nginx nginx -s reload
 ```
 
 ## Monitoring Setup
@@ -301,15 +301,15 @@ docker-compose -f docker-compose.prod.yml exec nginx nginx -s reload
 
 ```bash
 # リアルタイムログの表示
-docker-compose -f docker-compose.prod.yml logs -f
+docker-compose -f docker-compose.gpu.yml logs -f
 
 # 特定のサービスログの表示
-docker-compose -f docker-compose.prod.yml logs -f backend
-docker-compose -f docker-compose.prod.yml logs -f celery-worker
-docker-compose -f docker-compose.prod.yml logs -f nginx
+docker-compose -f docker-compose.gpu.yml logs -f backend
+docker-compose -f docker-compose.gpu.yml logs -f celery-worker
+docker-compose -f docker-compose.gpu.yml logs -f nginx
 
 # ログをファイルに保存
-docker-compose -f docker-compose.prod.yml logs --no-color > logs/application-$(date +%Y%m%d).log
+docker-compose -f docker-compose.gpu.yml logs --no-color > logs/application-$(date +%Y%m%d).log
 ```
 
 #### ヘルスチェック監視
@@ -354,11 +354,11 @@ cronに追加:
 
 ```bash
 # GPU使用状況の監視
-watch -n 1 docker-compose -f docker-compose.prod.yml exec celery-worker nvidia-smi
+watch -n 1 docker-compose -f docker-compose.gpu.yml exec celery-worker nvidia-smi
 
 # GPU統計をファイルに記録
 while true; do
-    docker-compose -f docker-compose.prod.yml exec celery-worker nvidia-smi --query-gpu=timestamp,temperature.gpu,utilization.gpu,utilization.memory,memory.used,memory.free --format=csv >> logs/gpu-stats-$(date +%Y%m%d).csv
+    docker-compose -f docker-compose.gpu.yml exec celery-worker nvidia-smi --query-gpu=timestamp,temperature.gpu,utilization.gpu,utilization.memory,memory.used,memory.free --format=csv >> logs/gpu-stats-$(date +%Y%m%d).csv
     sleep 60
 done
 ```
@@ -377,12 +377,12 @@ docker stats --no-stream >> logs/container-stats-$(date +%Y%m%d).log
 
 ```bash
 # データベースサイズの確認
-docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "
+docker-compose -f docker-compose.gpu.yml exec postgres psql -U whisper_prod -d whisper_prod -c "
 SELECT pg_size_pretty(pg_database_size('whisper_prod')) AS db_size;
 "
 
 # テーブルサイズの確認
-docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "
+docker-compose -f docker-compose.gpu.yml exec postgres psql -U whisper_prod -d whisper_prod -c "
 SELECT schemaname, tablename,
        pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size
 FROM pg_tables
@@ -391,12 +391,12 @@ ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
 "
 
 # アクティブな接続数の確認
-docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "
+docker-compose -f docker-compose.gpu.yml exec postgres psql -U whisper_prod -d whisper_prod -c "
 SELECT count(*) as active_connections FROM pg_stat_activity WHERE state = 'active';
 "
 
 # スロークエリの確認 (pg_stat_statementsが有効な場合)
-docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "
+docker-compose -f docker-compose.gpu.yml exec postgres psql -U whisper_prod -d whisper_prod -c "
 SELECT query, calls, mean_exec_time, stddev_exec_time
 FROM pg_stat_statements
 ORDER BY mean_exec_time DESC
@@ -420,10 +420,10 @@ LIMIT 10;
 
 ```bash
 # バックアップサービスのステータス表示
-docker-compose -f docker-compose.prod.yml ps backup
+docker-compose -f docker-compose.gpu.yml ps backup
 
 # バックアップログの表示
-docker-compose -f docker-compose.prod.yml logs backup
+docker-compose -f docker-compose.gpu.yml logs backup
 
 # バックアップの一覧表示
 ls -lh backup/
@@ -436,11 +436,11 @@ ls -lh backup/whisper_backup_latest.sql.gz
 
 ```bash
 # 手動バックアップの作成
-docker-compose -f docker-compose.prod.yml exec backup /scripts/backup.sh
+docker-compose -f docker-compose.gpu.yml exec backup /scripts/backup.sh
 
 # カスタムファイル名でのバックアップ
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-docker-compose -f docker-compose.prod.yml exec postgres pg_dump -U whisper_prod whisper_prod | gzip > backup/manual_backup_${TIMESTAMP}.sql.gz
+docker-compose -f docker-compose.gpu.yml exec postgres pg_dump -U whisper_prod whisper_prod | gzip > backup/manual_backup_${TIMESTAMP}.sql.gz
 ```
 
 ### オフサイトバックアップ
@@ -474,17 +474,17 @@ cronに追加:
 
 ```bash
 # サービスの停止
-docker-compose -f docker-compose.prod.yml stop backend celery-worker
+docker-compose -f docker-compose.gpu.yml stop backend celery-worker
 
 # データベースの復元
 gunzip -c backup/whisper_backup_YYYYMMDD_HHMMSS.sql.gz | \
-  docker-compose -f docker-compose.prod.yml exec -T postgres psql -U whisper_prod -d whisper_prod
+  docker-compose -f docker-compose.gpu.yml exec -T postgres psql -U whisper_prod -d whisper_prod
 
 # サービスの再起動
-docker-compose -f docker-compose.prod.yml start backend celery-worker
+docker-compose -f docker-compose.gpu.yml start backend celery-worker
 
 # 復元の確認
-docker-compose -f docker-compose.prod.yml exec backend alembic current
+docker-compose -f docker-compose.gpu.yml exec backend alembic current
 ```
 
 ## Scaling Considerations
@@ -493,7 +493,7 @@ docker-compose -f docker-compose.prod.yml exec backend alembic current
 
 #### コンテナリソースの増加
 
-`docker-compose.prod.yml`を編集:
+`docker-compose.gpu.yml`を編集:
 
 ```yaml
 services:
@@ -590,11 +590,11 @@ upstream backend {
 
 ```bash
 # 1. バックアップの作成
-docker-compose -f docker-compose.prod.yml exec backup /scripts/backup.sh
+docker-compose -f docker-compose.gpu.yml exec backup /scripts/backup.sh
 
 # 2. メンテナンスモードの有効化 (オプション)
 # nginx/html/にmaintenance.htmlを作成
-docker-compose -f docker-compose.prod.yml exec nginx nginx -s reload
+docker-compose -f docker-compose.gpu.yml exec nginx nginx -s reload
 
 # 3. 最新コードのプル
 git fetch origin
@@ -607,25 +607,25 @@ git log v1.0.0..v1.1.0
 ./scripts/build-frontend.sh
 
 # 6. サービスの停止
-docker-compose -f docker-compose.prod.yml down
+docker-compose -f docker-compose.gpu.yml down
 
 # 7. データベースマイグレーションの適用
-docker-compose -f docker-compose.prod.yml up -d postgres
+docker-compose -f docker-compose.gpu.yml up -d postgres
 sleep 10
-docker-compose -f docker-compose.prod.yml run --rm backend alembic upgrade head
+docker-compose -f docker-compose.gpu.yml run --rm backend alembic upgrade head
 
 # 8. サービスの再ビルドと再起動
-docker-compose -f docker-compose.prod.yml up -d --build
+docker-compose -f docker-compose.gpu.yml up -d --build
 
 # 9. デプロイの確認
 curl https://yourdomain.com/health
 
 # 10. メンテナンスモードの無効化
 # maintenance.htmlを削除
-docker-compose -f docker-compose.prod.yml exec nginx nginx -s reload
+docker-compose -f docker-compose.gpu.yml exec nginx nginx -s reload
 
 # 11. ログの監視
-docker-compose -f docker-compose.prod.yml logs -f --tail=100
+docker-compose -f docker-compose.gpu.yml logs -f --tail=100
 ```
 
 ### ゼロダウンタイム更新
@@ -655,17 +655,17 @@ docker-compose -f docker-compose.green.yml down
 
 ```bash
 # 1. 現在のサービスを停止
-docker-compose -f docker-compose.prod.yml down
+docker-compose -f docker-compose.gpu.yml down
 
 # 2. 前のバージョンにチェックアウト
 git checkout tags/v1.0.0
 
 # 3. データベースの復元 (マイグレーションが適用された場合)
 gunzip -c backup/whisper_backup_YYYYMMDD_HHMMSS.sql.gz | \
-  docker-compose -f docker-compose.prod.yml exec -T postgres psql -U whisper_prod -d whisper_prod
+  docker-compose -f docker-compose.gpu.yml exec -T postgres psql -U whisper_prod -d whisper_prod
 
 # 4. サービスの再ビルドと起動
-docker-compose -f docker-compose.prod.yml up -d --build
+docker-compose -f docker-compose.gpu.yml up -d --build
 
 # 5. ロールバックの確認
 curl https://yourdomain.com/health
@@ -677,13 +677,13 @@ curl https://yourdomain.com/health
 
 ```bash
 # 特定のリビジョンにダウングレード
-docker-compose -f docker-compose.prod.yml exec backend alembic downgrade <revision>
+docker-compose -f docker-compose.gpu.yml exec backend alembic downgrade <revision>
 
 # または1つ前のバージョンにダウングレード
-docker-compose -f docker-compose.prod.yml exec backend alembic downgrade -1
+docker-compose -f docker-compose.gpu.yml exec backend alembic downgrade -1
 
 # 確認
-docker-compose -f docker-compose.prod.yml exec backend alembic current
+docker-compose -f docker-compose.gpu.yml exec backend alembic current
 ```
 
 ## Maintenance Tasks
@@ -716,10 +716,10 @@ docker-compose -f docker-compose.prod.yml exec backend alembic current
 
 ```bash
 # VACUUMとANALYZEの実行
-docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "VACUUM ANALYZE;"
+docker-compose -f docker-compose.gpu.yml exec postgres psql -U whisper_prod -d whisper_prod -c "VACUUM ANALYZE;"
 
 # 肥大化したテーブルの確認
-docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "
+docker-compose -f docker-compose.gpu.yml exec postgres psql -U whisper_prod -d whisper_prod -c "
 SELECT schemaname, tablename,
        pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size,
        n_dead_tup
@@ -729,7 +729,7 @@ LIMIT 10;
 "
 
 # 必要に応じて再インデックス
-docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "REINDEX DATABASE whisper_prod;"
+docker-compose -f docker-compose.gpu.yml exec postgres psql -U whisper_prod -d whisper_prod -c "REINDEX DATABASE whisper_prod;"
 ```
 
 ### ログローテーション
@@ -758,10 +758,10 @@ sudo systemctl restart docker
 
 ```bash
 # クリーンアップサービスの実行
-docker-compose -f docker-compose.prod.yml exec cleanup python -m app.scripts.cleanup_files
+docker-compose -f docker-compose.gpu.yml exec cleanup python -m app.scripts.cleanup_files
 
 # クリーンアップログの確認
-docker-compose -f docker-compose.prod.yml logs cleanup
+docker-compose -f docker-compose.gpu.yml logs cleanup
 ```
 
 ## Verification Steps
@@ -770,7 +770,7 @@ docker-compose -f docker-compose.prod.yml logs cleanup
 
 ```bash
 # 1. すべてのサービスが実行中か確認
-docker-compose -f docker-compose.prod.yml ps
+docker-compose -f docker-compose.gpu.yml ps
 
 # 2. HTTPSエンドポイントのテスト
 curl https://yourdomain.com/health
@@ -781,24 +781,24 @@ curl -X POST https://yourdomain.com/api/v1/auth/login \
   -d '{"username": "test_user", "password": "test_pass"}'
 
 # 4. データベースの確認
-docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d whisper_prod -c "SELECT COUNT(*) FROM users;"
+docker-compose -f docker-compose.gpu.yml exec postgres psql -U whisper_prod -d whisper_prod -c "SELECT COUNT(*) FROM users;"
 
 # 5. GPUアクセスの確認
-docker-compose -f docker-compose.prod.yml exec celery-worker nvidia-smi
+docker-compose -f docker-compose.gpu.yml exec celery-worker nvidia-smi
 
 # 6. ファイルアップロードのテスト (UIまたはAPI経由)
 
 # 7. エラーのログ監視
-docker-compose -f docker-compose.prod.yml logs --tail=100 | grep -i error
+docker-compose -f docker-compose.gpu.yml logs --tail=100 | grep -i error
 
 # 8. SSL証明書の確認
 echo | openssl s_client -servername yourdomain.com -connect yourdomain.com:443 2>/dev/null | openssl x509 -noout -dates
 
 # 9. バックアップシステムのテスト
-docker-compose -f docker-compose.prod.yml exec backup /scripts/backup.sh
+docker-compose -f docker-compose.gpu.yml exec backup /scripts/backup.sh
 
 # 10. クリーンアップサービスの確認
-docker-compose -f docker-compose.prod.yml logs cleanup
+docker-compose -f docker-compose.gpu.yml logs cleanup
 ```
 
 ## Troubleshooting
@@ -809,10 +809,10 @@ docker-compose -f docker-compose.prod.yml logs cleanup
 
 ```bash
 # サービスステータスの確認
-docker-compose -f docker-compose.prod.yml ps
+docker-compose -f docker-compose.gpu.yml ps
 
 # 最近のエラーの表示
-docker-compose -f docker-compose.prod.yml logs --tail=100 | grep -i error
+docker-compose -f docker-compose.gpu.yml logs --tail=100 | grep -i error
 
 # リソース使用状況の確認
 docker stats
@@ -821,10 +821,10 @@ docker stats
 df -h
 
 # GPUステータスの確認
-docker-compose -f docker-compose.prod.yml exec celery-worker nvidia-smi
+docker-compose -f docker-compose.gpu.yml exec celery-worker nvidia-smi
 
 # データベース接続のテスト
-docker-compose -f docker-compose.prod.yml exec backend python -c "from app.core.database import test_connection; import asyncio; asyncio.run(test_connection())"
+docker-compose -f docker-compose.gpu.yml exec backend python -c "from app.core.database import test_connection; import asyncio; asyncio.run(test_connection())"
 ```
 
 ## Support and Documentation

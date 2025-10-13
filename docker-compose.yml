@@ -50,6 +50,7 @@ services:
       - upload-data:/data/uploads
       - result-data:/data/results
       - temp-data:/data/temp
+      - model-cache:/root/.cache/huggingface
     ports:
       - "8001:8000"
     environment:
@@ -73,18 +74,19 @@ services:
       context: ./backend
       dockerfile: Dockerfile.dev
     container_name: whisper-celery-worker
-    command: celery -A app.celery_app worker --loglevel=info --concurrency=1
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=1 --queues transcription
     volumes:
       - ./backend:/app
       - upload-data:/data/uploads
       - result-data:/data/results
       - temp-data:/data/temp
+      - model-cache:/root/.cache/huggingface
     environment:
       - DATABASE_URL=postgresql://user:password@postgres:5432/whisper
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - WHISPER_BACKEND=transformers
+      # - WHISPER_BACKEND=transformers  # Uncomment for CUDA 11.4 environments
       # GPU configuration removed for development (CPU only)
     depends_on:
       - redis
@@ -134,6 +136,7 @@ volumes:
   upload-data:
   result-data:
   temp-data:
+  model-cache:
 
 networks:
   whisper-network:

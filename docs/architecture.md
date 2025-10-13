@@ -145,10 +145,37 @@ backend/
 
 **主要タスク**:
 1. 音声抽出（動画ファイルの場合）
-2. Whisper文字起こし
+2. Whisper文字起こし（バックエンド選択可能）
 3. 話者分離
 4. 字幕ファイル生成
 5. 結果の保存
+
+**Whisper Backendの選択**:
+
+環境変数 `WHISPER_BACKEND` で2つのバックエンドを切り替え可能：
+
+| バックエンド | CUDA要件 | 実装 | パフォーマンス |
+|------------|---------|------|--------------|
+| `faster-whisper` (デフォルト) | 11.8+ / 12.x | CTranslate2最適化 | 高速・省メモリ（推奨） |
+| `transformers` | 11.4+ | PyTorch標準実装 | 2-4倍遅い、1.5-2倍VRAM |
+
+**バックエンド選択ロジック** (`transcription_tasks.py`):
+```python
+WHISPER_BACKEND = os.getenv("WHISPER_BACKEND", "faster-whisper")
+
+def get_transcriber(model_name: str, device: str, compute_type: str):
+    """ファクトリ関数: 環境に応じた適切なWhisperバックエンドを返す"""
+    if WHISPER_BACKEND == "transformers" and TRANSFORMERS_AVAILABLE:
+        return WhisperTranscriberTransformers(
+            model_name=model_name, device=device, torch_dtype=...
+        )
+    else:
+        return WhisperTranscriber(
+            model_name=model_name, device=device, compute_type=compute_type
+        )
+```
+
+**API互換性**: 両バックエンドは同一のAPIを提供し、シームレスに切り替え可能
 
 **ディレクトリ構造**:
 ```
@@ -156,10 +183,9 @@ backend/
 ├── app/
 │   ├── celery_app.py        # Celery設定
 │   └── tasks/
-│       ├── transcription.py # 文字起こしタスク
-│       ├── diarization.py   # 話者分離タスク
-│       ├── subtitle.py      # 字幕生成タスク
-│       └── cleanup.py       # ファイル削除タスク
+│       ├── transcription_tasks.py  # 文字起こしタスク（バックエンド選択含む）
+│       ├── whisper_transformers.py  # transformersバックエンド実装
+│       └── ...
 ```
 
 **タスクフロー**:
@@ -167,6 +193,9 @@ backend/
 1. extract_audio_task       # 音声抽出（MP4の場合）
    ↓
 2. transcribe_task          # Whisper文字起こし
+   │                        # ↓ get_transcriber()でbackend選択
+   │                        # ├─ faster-whisper (CUDA 11.8+)
+   │                        # └─ transformers (CUDA 11.4+)
    ↓
 3. diarize_task             # 話者分離
    ↓
@@ -717,6 +746,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://user:pass@postgres:5432/whisper
       - REDIS_URL=redis://redis:6379
+      - WHISPER_BACKEND=faster-whisper  # または transformers (CUDA 11.4環境)
     depends_on:
       - redis
       - postgres

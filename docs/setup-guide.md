@@ -6,11 +6,69 @@ This guide walks you through setting up the Whisper App for both development and
 
 1. [Prerequisites](#prerequisites)
 2. [System Requirements](#system-requirements)
-3. [Development Setup](#development-setup)
-4. [Production Setup](#production-setup)
-5. [Initial Configuration](#initial-configuration)
-6. [Database Setup](#database-setup)
-7. [Verification](#verification)
+3. [Docker Compose Files](#docker-compose-files)
+4. [Development Setup](#development-setup)
+5. [Production Setup](#production-setup)
+6. [Initial Configuration](#initial-configuration)
+7. [Database Setup](#database-setup)
+8. [Verification](#verification)
+
+## Docker Compose Files
+
+This project uses separate Docker Compose files for development and production environments:
+
+### `docker-compose.yml` (Development)
+
+**Purpose**: Local development environment without GPU requirements
+
+**Features**:
+- CPU-only faster-whisper (or mock mode)
+- Hot reload enabled for backend and frontend
+- Mock authentication (no LDAP required)
+- Development Dockerfiles
+- Port mappings: Frontend 5174, Backend 8001
+- Model cache volume for HuggingFace models
+
+**Usage**:
+```bash
+docker-compose up -d
+docker-compose logs -f
+docker-compose down
+```
+
+### `docker-compose.prod.yml` (Production)
+
+**Purpose**: Production deployment with full GPU support and optimized settings
+
+**Features**:
+- GPU support (NVIDIA CUDA)
+- SSL/HTTPS with Let's Encrypt
+- LDAP authentication
+- Automated backups
+- Automated file cleanup
+- Resource limits and monitoring
+- Production Dockerfiles
+- Nginx reverse proxy
+
+**Usage**:
+```bash
+docker-compose -f docker-compose.prod.yml up -d
+docker-compose -f docker-compose.prod.yml logs -f
+docker-compose -f docker-compose.prod.yml down
+```
+
+**Key Differences**:
+
+| Feature | Development (`docker-compose.yml`) | Production (`docker-compose.prod.yml`) |
+|---------|-----------------------------------|----------------------------------------|
+| GPU | Optional (CPU mode available) | Required (NVIDIA GPU) |
+| SSL/HTTPS | No (HTTP only) | Yes (with Let's Encrypt) |
+| Authentication | Mock auth enabled | LDAP authentication |
+| Hot Reload | Yes | No |
+| Backups | No | Automated daily backups |
+| File Cleanup | No | Automated cleanup service |
+| Resource Limits | No | Yes (CPU/memory limits) |
+| Monitoring | Basic | Full logging + metrics |
 
 ## Prerequisites
 
@@ -94,6 +152,72 @@ sudo systemctl restart docker
 # Verify
 docker run --rm --gpus all nvidia/cuda:11.8.0-base-ubuntu22.04 nvidia-smi
 ```
+
+### CUDA 11.4 Specific Setup (Transformers Backend)
+
+If your environment has CUDA 11.4, you need to use the transformers backend instead of faster-whisper (which requires CUDA 11.8+).
+
+1. **Verify CUDA version**:
+```bash
+nvidia-smi
+
+# Check CUDA version in the output
+# CUDA Version: 11.4.xxx
+```
+
+2. **Install transformers backend dependencies**:
+```bash
+# Inside the backend container
+docker-compose exec backend pip install -r requirements-transformers-cuda114.txt
+
+# Or during build, modify Dockerfile to use this requirements file
+```
+
+3. **Configure environment variable**:
+
+Edit `docker-compose.yml` or `.env` file:
+```yaml
+celery-worker:
+  environment:
+    - WHISPER_BACKEND=transformers  # Required for CUDA 11.4
+```
+
+Or add to `.env`:
+```bash
+WHISPER_BACKEND=transformers
+```
+
+4. **Verify transformers installation**:
+```bash
+# Check if transformers is installed
+docker-compose exec backend python -c "import transformers; print(transformers.__version__)"
+
+# Expected output: 4.35.2
+```
+
+5. **Test transformers backend**:
+```bash
+# Run a simple transcription test
+docker-compose exec backend python -c "
+from app.tasks.whisper_transformers import WhisperTranscriberTransformers
+transcriber = WhisperTranscriberTransformers(model_name='tiny', device='cpu', torch_dtype='float32')
+print('✅ Transformers backend loaded successfully')
+"
+```
+
+**Important Notes**:
+- Transformers backend is **2-4x slower** than faster-whisper
+- Uses **1.5-2x more VRAM** than faster-whisper
+- Only use if CUDA 11.4 is required (faster-whisper needs CUDA 11.8+)
+- For new installations, CUDA 11.8+ or 12.x is recommended for better performance
+
+**Dependencies**:
+- `torch==2.0.1+cu117` (CUDA 11.7 binaries work on CUDA 11.4 drivers via forward compatibility)
+- `transformers==4.35.2`
+- `accelerate==0.24.1`
+- `safetensors==0.4.1`
+
+See [technology-stack.md](./technology-stack.md) Section 14.3 for detailed information.
 
 ### Docker Installation
 

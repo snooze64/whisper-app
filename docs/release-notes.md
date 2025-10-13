@@ -255,6 +255,73 @@ Whisper App v1.0.0 is an on-premises audio/video transcription system designed f
   - Glossary of terms
 - **Release Notes**: This document
 
+### Additional Implementations (Post-Release)
+
+#### Docker Compose Configuration Cleanup ✅
+**Completion Date**: 2025-10-13
+
+**Problem**: Multiple overlapping docker-compose files causing confusion
+- `docker-compose.yml` (development)
+- `docker-compose.dev.yml` (almost empty)
+- `docker-compose.dev-full.yml` (duplicate of docker-compose.yml)
+- `docker-compose.prod.yml` (production)
+
+**Solution**: Simplified to 2 clear files
+- ✅ **Removed**: `docker-compose.dev.yml`, `docker-compose.dev-full.yml`
+- ✅ **Kept**: `docker-compose.yml` (development), `docker-compose.prod.yml` (production)
+- ✅ **Enhanced**: Added `model-cache` volume for HuggingFace model caching
+- ✅ **Enhanced**: Added `--queues transcription` to celery worker command
+- ✅ **Documentation**: Added "Docker Compose Files" section to setup-guide.md
+- ✅ **Documentation**: Updated README.md with file usage comparison table
+
+**Benefits**:
+- Clear separation: development vs. production
+- No file duplication or confusion
+- Better documentation for users
+- Improved model caching performance
+
+#### Transformers Backend Support (CUDA 11.4 Compatibility) ✅
+**Completion Date**: 2025-10-13
+
+**Problem**: faster-whisper requires CUDA 11.8+, incompatible with CUDA 11.4 environments
+
+**Solution**: Dual backend architecture with factory pattern
+- ✅ **New Backend**: `WhisperTranscriberTransformers` class using HuggingFace transformers
+- ✅ **Factory Function**: `get_transcriber()` for dynamic backend selection
+- ✅ **Environment Variable**: `WHISPER_BACKEND` to choose "faster-whisper" (default) or "transformers"
+- ✅ **Requirements File**: `requirements-transformers-cuda114.txt` with CUDA 11.4 compatible dependencies
+- ✅ **Backward Compatible**: faster-whisper backend unchanged, default behavior preserved
+- ✅ **Fallback Logic**: Automatic fallback if requested backend unavailable
+
+**Technical Details**:
+- transformers backend uses `WhisperForConditionalGeneration` from HuggingFace
+- Supports same models as faster-whisper (tiny, base, small, medium, large-v3, large-v3-turbo)
+- Returns identical segment structure for API compatibility
+- PyTorch CUDA 11.7 binaries work on CUDA 11.4 via forward compatibility
+
+**Performance Trade-offs**:
+| Backend | CUDA Requirement | Speed | VRAM Usage | Use Case |
+|---------|-----------------|-------|------------|----------|
+| **faster-whisper** | 11.8+ / 12.x | ⚡ Fast | Lower | Recommended |
+| **transformers** | 11.4+ | 🐌 2-4x slower | 1.5-2x higher | CUDA 11.4 only |
+
+**Documentation**:
+- ✅ Updated README.md with backend comparison table
+- ✅ Added "CUDA 11.4 Specific Setup" section to setup-guide.md
+- ✅ Added "Transformers Backend Not Working" section to troubleshooting.md
+- ✅ Updated architecture.md with backend selection architecture
+- ✅ Updated development-plan.md with implementation record
+
+**Files Changed**:
+- `backend/app/tasks/transcription_tasks.py`: Added factory function
+- `backend/app/tasks/whisper_transformers.py`: New file (404 lines)
+- `backend/requirements-transformers-cuda114.txt`: New file
+
+**Testing**:
+- ✅ Verified faster-whisper still works as default
+- ✅ Verified transformers backend activates correctly
+- ✅ Confirmed backward compatibility
+
 ---
 
 ## Feature Highlights
@@ -341,10 +408,14 @@ Track all transcription tasks:
 - **Task Queue**: Celery 5.3+ with Redis broker
 - **Authentication**: python-ldap + PyJWT
 - **AI Models**:
-  - faster-whisper 0.10+ (OpenAI Whisper)
+  - faster-whisper 1.2.0+ (OpenAI Whisper, default backend, CUDA 11.8+ required)
+  - transformers 4.35.2+ (Alternative Whisper backend, CUDA 11.4+ compatible)
   - Resemblyzer 0.1.1.dev0 (speaker diarization)
 - **Audio Processing**: FFmpeg 4.4+
-- **GPU**: CUDA 11.8 or 12.4, PyTorch 2.1+ (CUDA-enabled)
+- **GPU**:
+  - CUDA 11.4+ (transformers backend)
+  - CUDA 11.8+ or 12.x (faster-whisper backend, recommended)
+  - PyTorch 2.0.1+ (CUDA-enabled)
 
 ### Frontend
 - **Framework**: React 18+ with TypeScript 5+
@@ -422,7 +493,7 @@ cp .env.example .env
 # Edit .env with your settings
 nano .env
 
-# Start all services
+# Start all services (uses docker-compose.yml for development)
 docker-compose up -d --build
 
 # Check service status
@@ -432,10 +503,12 @@ docker-compose ps
 docker-compose logs -f
 
 # Access application
-# Frontend: http://localhost:5173
-# Backend API: http://localhost:8000
-# API Docs: http://localhost:8000/docs
+# Frontend: http://localhost:5174
+# Backend API: http://localhost:8001
+# API Docs: http://localhost:8001/docs
 ```
+
+**Note**: The development environment uses `docker-compose.yml` (default). For CUDA 11.4 environments, see "CUDA 11.4 Specific Setup" in [Setup Guide](./setup-guide.md).
 
 ### Production Deployment
 
@@ -559,22 +632,28 @@ After Phase 8 optimization:
 
 ### Known Issues
 
-1. **Resemblyzer Dependency Compatibility**:
+1. **Transformers Backend Performance**:
+   - Transformers backend is 2-4x slower than faster-whisper
+   - Uses 1.5-2x more VRAM than faster-whisper
+   - **Recommendation**: Only use transformers backend for CUDA 11.4 environments
+   - **Workaround**: Upgrade to CUDA 11.8+ or 12.x for faster-whisper if possible
+
+2. **Resemblyzer Dependency Compatibility**:
    - Requires numpy 1.23.5 (incompatible with numpy 1.24+)
    - Requires librosa 0.9.1 (incompatible with librosa 0.10+)
    - FutureWarning messages appear in logs (functional impact: none)
    - **Workaround**: Dependencies pinned in requirements files
 
-2. **GPU Memory Monitoring**:
+3. **GPU Memory Monitoring**:
    - GPU memory check is point-in-time (not reserved)
    - Multiple tasks may start if memory check passes simultaneously
    - **Workaround**: Limit Celery concurrency to 1-2 workers per GPU
 
-3. **Integration Tests**:
+4. **Integration Tests**:
    - Some integration tests require adjustment for token handling
    - **Status**: Tests created, minor refinement needed before production
 
-4. **React Router v7 Warning**:
+5. **React Router v7 Warning**:
    - Console warning about future React Router version
    - **Impact**: No functional impact, can be addressed in future update
 

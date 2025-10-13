@@ -1013,6 +1013,124 @@ Closes #123
 
 ---
 
+## 11. 追加実装: CUDA 11.4対応 Transformers Backend
+
+### 概要
+
+Phase 10完了後、CUDA 11.4環境での動作要件に対応するため、transformers backendを実装しました。
+
+### 実装日
+
+2025-10-13
+
+### ブランチ
+
+`feature/transformers-whisper-cuda11.4`
+
+### 背景と目的
+
+- **問題**: faster-whisperはCTranslate2依存のため、CUDA 11.8以上が必要
+- **要件**: CUDA 11.4環境でもWhisper文字起こしを動作させる必要がある
+- **解決策**: HuggingFace transformers版Whisperをセカンドバックエンドとして実装
+
+### 実装内容
+
+#### 新規ファイル
+
+1. **`backend/app/tasks/whisper_transformers.py`** (372行)
+   - HuggingFace transformers版Whisper実装
+   - faster-whisperとAPI互換性を維持
+   - CUDA 11.4対応（PyTorch 2.0.1+cu117使用）
+   - int8 dtype自動fallback機能
+
+2. **`backend/requirements-transformers-cuda114.txt`** (91行)
+   - CUDA 11.4互換の依存関係定義
+   - `torch==2.0.1+cu117` (CUDA 11.7バイナリ、11.4で動作可能)
+   - `transformers==4.35.2`
+   - `accelerate==0.24.1`
+   - `safetensors==0.4.1`
+
+3. **`backend/tests/test_whisper_transformers.py`** (318行)
+   - 13個のユニットテスト（全てパス）
+   - モデル名変換、初期化、セグメント解析、API互換性テスト
+
+#### 変更ファイル
+
+1. **`backend/app/tasks/transcription_tasks.py`**
+   - バックエンド選択ロジック追加
+   - 環境変数 `WHISPER_BACKEND` でfaster-whisper/transformersを切り替え
+   - `get_transcriber()` ファクトリ関数実装
+   - デフォルト: faster-whisper（推奨）
+
+2. **`docs/technology-stack.md`**
+   - Section 3.1: faster-whisper vs transformers 比較表
+   - Section 14.3: CUDA 11.4対応詳細説明
+
+3. **`docker-compose.yml`**
+   - celery-workerに `WHISPER_BACKEND` 環境変数追加
+
+#### ドキュメント更新
+
+- `README.md`: バックエンド選択の説明、CUDA要件の更新
+- `architecture.md`: バックエンド選択アーキテクチャの説明
+- `setup-guide.md`: CUDA 11.4環境セットアップ手順
+- `troubleshooting.md`: transformers backend関連トラブルシューティング
+
+### 技術的詳細
+
+#### バックエンド切り替え
+
+```yaml
+# docker-compose.yml
+celery-worker:
+  environment:
+    - WHISPER_BACKEND=faster-whisper  # デフォルト（推奨）
+    # または
+    - WHISPER_BACKEND=transformers    # CUDA 11.4環境向け
+```
+
+#### パフォーマンス比較
+
+| 項目 | faster-whisper | transformers |
+|------|---------------|--------------|
+| 処理速度 | ⚡ ベースライン | 🐌 2-4倍遅い |
+| VRAM使用量 | ベースライン | 1.5-2倍 |
+| CUDA要件 | 11.8+ / 12.x | 11.4+ |
+
+#### API互換性
+
+両バックエンドは同一のAPIを提供：
+- `transcribe(audio_file, language, task, beam_size, vad_filter, vad_parameters)`
+- 戻り値: セグメントリスト（faster-whisper互換フォーマット）
+
+#### 動作確認
+
+- ✅ ユニットテスト: 13テスト全てパス
+- ✅ E2Eテスト: 24秒音声を約11秒で文字起こし（CPU、tinyモデル）
+- ✅ ブラウザテスト: 実際のWhisper AI文字起こし成功
+
+### 成果物
+
+- **コミット数**: 2個
+  1. `463b189`: 初期実装（transformers backend + テスト + ドキュメント）
+  2. `b02887c`: int8 dtype修正 + docker-compose.yml更新
+
+- **追加コード**: 約1,000行
+  - 実装: 372行（whisper_transformers.py）
+  - テスト: 318行（test_whisper_transformers.py）
+  - ドキュメント: 更新多数
+
+### 今後の改善点
+
+- [ ] Dockerfileへの組み込み（現在は手動インストール）
+- [ ] モデルキャッシュの最適化
+- [ ] バックエンド自動選択機能（CUDA バージョン検出）
+
+---
+
 **文書作成日**: 2025-10-13
 **最終更新日**: 2025-10-13
-**バージョン**: 1.0
+**バージョン**: 1.1
+**変更履歴**:
+- v1.1 (2025-10-13): CUDA 11.4対応transformers backend実装記録を追加
+- v1.0 (2025-10-13): 初版作成

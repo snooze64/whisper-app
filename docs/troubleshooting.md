@@ -219,6 +219,97 @@ docker-compose -f docker-compose.prod.yml exec postgres psql -U whisper_prod -d 
 docker-compose -f docker-compose.prod.yml exec celery-worker ffmpeg -i /data/uploads/1/file.mp4 -vn -acodec pcm_s16le -ar 16000 /tmp/test.wav
 ```
 
+### Issue: Transformers Backend Not Working
+
+**Symptoms**:
+- "transformers library not available" in logs
+- Mock transcription appears instead of real transcription
+- "Can't instantiate WhisperForConditionalGeneration model under dtype=torch.int8"
+
+**Solutions**:
+
+1. **Check if transformers is installed**:
+```bash
+docker-compose exec celery-worker python -c "import transformers; print(transformers.__version__)"
+
+# If not installed:
+docker-compose exec celery-worker pip install transformers==4.35.2 accelerate==0.24.1 safetensors==0.4.1
+```
+
+2. **Verify WHISPER_BACKEND environment variable**:
+```bash
+docker-compose exec celery-worker printenv | grep WHISPER_BACKEND
+
+# Should output: WHISPER_BACKEND=transformers
+```
+
+If not set, add to `docker-compose.yml`:
+```yaml
+celery-worker:
+  environment:
+    - WHISPER_BACKEND=transformers
+```
+
+3. **Restart celery-worker after changes**:
+```bash
+docker-compose restart celery-worker
+```
+
+4. **int8 dtype error (already fixed)**:
+This error is automatically handled. The system falls back to float32 when int8 is requested.
+Check logs for warning: "int8 dtype not supported for Whisper models, using float32 instead"
+
+5. **Test transformers backend manually**:
+```bash
+docker-compose exec celery-worker python /tmp/test_transformers.py
+```
+
+Create `/tmp/test_transformers.py`:
+```python
+import os
+os.environ['WHISPER_BACKEND'] = 'transformers'
+
+from app.tasks.transcription_tasks import get_transcriber
+
+transcriber = get_transcriber("tiny", "cpu", "float32")
+print(f"Backend type: {type(transcriber).__name__}")
+transcriber.load_model()
+print("✅ Model loaded successfully")
+```
+
+### Issue: CUDA 11.4 Compatibility
+
+**Symptoms**:
+- faster-whisper fails with "CUDA 11.8+ required"
+- CTranslate2 errors mentioning CUDA version
+
+**Solutions**:
+
+1. **Check CUDA version**:
+```bash
+nvidia-smi | grep "CUDA Version"
+```
+
+2. **If CUDA 11.4, switch to transformers backend**:
+```yaml
+# docker-compose.yml
+celery-worker:
+  environment:
+    - WHISPER_BACKEND=transformers  # Required for CUDA 11.4
+```
+
+3. **Install CUDA 11.4 compatible dependencies**:
+```bash
+docker-compose exec celery-worker pip install -r requirements-transformers-cuda114.txt
+```
+
+See [setup-guide.md](./setup-guide.md) Section "CUDA 11.4 Specific Setup" for detailed instructions.
+
+**Performance Note**:
+- transformers backend is 2-4x slower than faster-whisper
+- Uses 1.5-2x more VRAM
+- Only use if CUDA 11.4 is required (prefer CUDA 11.8+ for faster-whisper)
+
 ## GPU Issues
 
 ### Issue: GPU Not Detected

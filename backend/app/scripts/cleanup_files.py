@@ -42,7 +42,9 @@ async def cleanup_old_files():
     logger.info(f"Removing files older than: {cutoff_time}")
 
     # Create database session
-    engine = create_async_engine(settings.DATABASE_URL, echo=False)
+    # Convert DATABASE_URL to use asyncpg driver for async operations
+    database_url = settings.DATABASE_URL.replace('postgresql://', 'postgresql+asyncpg://')
+    engine = create_async_engine(database_url, echo=False)
     async_session = sessionmaker(
         engine, class_=AsyncSession, expire_on_commit=False
     )
@@ -114,7 +116,9 @@ async def cleanup_orphaned_files():
     logger.info("Checking for orphaned files...")
 
     # Create database session
-    engine = create_async_engine(settings.DATABASE_URL, echo=False)
+    # Convert DATABASE_URL to use asyncpg driver for async operations
+    database_url = settings.DATABASE_URL.replace('postgresql://', 'postgresql+asyncpg://')
+    engine = create_async_engine(database_url, echo=False)
     async_session = sessionmaker(
         engine, class_=AsyncSession, expire_on_commit=False
     )

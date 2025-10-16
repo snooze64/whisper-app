@@ -95,3 +95,4 @@ models/
 
 # Alembic
 alembic.ini.local
+LEARNING_GUIDE.md

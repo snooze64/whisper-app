@@ -218,13 +218,13 @@ services:
     networks:
       - whisper-network
 
-  # Nginx Reverse Proxy with SSL
+  # Nginx Reverse Proxy (HTTP only - no SSL)
   nginx:
     image: nginx:alpine
     container_name: whisper-nginx-prod
     restart: always
     volumes:
-      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/nginx.prod.nossl.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
       - ./frontend/dist:/usr/share/nginx/html:ro
       - nginx-cache:/var/cache/nginx
